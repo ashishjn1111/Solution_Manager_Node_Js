@@ -1,0 +1,2057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deltek Solution Manager</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            'primary-indigo': '#4f46e5',
+            'deltek-blue': '#0033a0',
+            'deltek-light': '#e8eef7',
+            'secondary-gray': '#f3f4f6',
+            'dark-bg': '#0e0e0e',
+            'dark-card': '#121212',
+            'dark-sidebar': '#121212',
+            'action-green': '#10b981',
+            'warning-yellow': '#f59e0b',
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    /* ===== Base / Layout ===== */
+    body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; color: #1f2937; height: 100vh; display: flex; justify-content: center; align-items: center; padding: 0; margin: 0; transition: background-color .3s, color .3s; }
+    body.dark-mode { background-color: #0e0e0e; color: #f1f1f1; }
+    .chat-container { max-width: 1400px; width: 95%; height: 95vh; display: flex; border-radius: 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.15); overflow: hidden; background-color: #fff; transition: all .3s ease; }
+    .chat-container.dark-mode { background-color: #121212; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #9ca3af; border-radius: 4px; }
+    .dark-mode::-webkit-scrollbar-thumb { background: #374151; }
+    ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+    .dark-mode::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+
+    /* ===== Sidebar ===== */
+    #sidebar { width: 320px; flex-shrink: 0; display: flex; flex-direction: column; background-color: #f9fafb; border-right: 1px solid #e5e7eb; padding: 0; transition: background-color .3s, border-color .3s; }
+    #sidebar.dark-mode { background-color: #121212; border-right-color: #374151; }
+    #sidebar-header { padding: 1.5rem 1rem; font-size: 1.25rem; font-weight: 700; color: #4f46e5; border-bottom: 1px solid #e5e7eb; justify-content: space-between; transition: background-color .3s, border-color .3s; }
+    #sidebar-header.dark-mode { background-color: #121212; color: #a5b4fc; border-bottom-color: #374151; }
+    .history-item { padding: .75rem; border-radius: .5rem; background-color: #fff; border: 1px solid #e5e7eb; cursor: pointer; transition: background-color .2s, border-color .2s; }
+    .history-item:hover { background-color: #eef2ff; border-color: #93c5fd; }
+    .history-item.dark-mode { background-color: #1f1f1f; border-color: #333; }
+    .history-item.dark-mode:hover { background-color: #2a2a2a; border-color: #6366f1; }
+    .history-item-query { font-weight: 600; color: #1f2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .history-item.dark-mode .history-item-query { color: #f1f1f1; }
+    .history-item-response { font-size: .75rem; color: #6b7280; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .main-chat-column { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
+    header.dark-mode { background-color: #121212; }
+    .content-area { flex-grow: 1; position: relative; }
+    .chat-box { position: absolute; inset: 0; padding: 1.25rem; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: .75rem; }
+    .chat-box.dark-mode { background-color: #0e0e0e; color: #fff; }
+
+    /* ===== Messages ===== */
+    .message { position: relative; padding: .75rem 1rem; border-radius: 1.5rem; max-width: 85%; word-wrap: break-word; transition: background-color .3s, border-color .3s, box-shadow .3s; }
+    .user-message { align-self: flex-end; background-color: #4f46e5; color: #fff; border-bottom-right-radius: .5rem; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .bot-message { align-self: flex-start; background-color: #f3f4f6; color: #1f2937; border: 1px solid #e5e7eb; border-bottom-left-radius: .5rem; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    .bot-message.dark-mode { background-color: #1a1a1a; color: #f1f1f1; border-color: #374151; }
+    .user-message.dark-mode { background-color: #3e3e7c; color: #fff; }
+    .message-text { word-break: break-word; }
+    .user-message .message-text { white-space: pre-wrap; }
+    .bot-message .message-text { white-space: normal; }
+
+    .status-message { white-space: pre-wrap; background-color: #e5e7eb; color: #374151; padding: .5rem 1rem; border-radius: .75rem; max-width: 75%; align-self: center; text-align: center; font-style: italic; }
+    .status-message.error-message { background-color: #fee2e2; color: #b91c1c; border-left: 4px solid #ef4444; }
+    .status-message.dark-mode { background-color: #333; color: #e5e7eb; }
+    .status-message.dark-mode.error-message { background-color: #880000; color: #fff; border-left-color: #ff4444; }
+
+    .message-delete-btn { position: absolute; top: -10px; right: -10px; width: 24px; height: 24px; border-radius: 50%; background-color: #dc2626; color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .message-delete-btn:hover { background-color: #b91c1c; }
+
+    .metadata-container { display: flex; flex-wrap: wrap; gap: .5rem; padding-top: .75rem; margin-top: .75rem; border-top: 1px solid #d1d5db; font-size: .7rem; color: #4b5563; font-style: italic; }
+    .bot-message.dark-mode .metadata-container { border-top-color: #374151; color: #9ca3af; }
+    .metadata-container a { color: #4f46e5; text-decoration: underline; font-weight: 500; transition: color .2s; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bot-message.dark-mode .metadata-container a { color: #a5b4fc; }
+
+    .document-card { max-width: 320px; padding: 1rem; border-radius: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); align-self: flex-start; background-color: #fff; }
+    .document-card.dark-mode { background-color: #1a1a1a; box-shadow: 0 4px 12px rgba(255,255,255,0.1); }
+    .document-card-img { height: 120px; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; font-size: 3rem; border-radius: .75rem; }
+    .document-card-title { font-weight: 600; color: #111827; margin-top: .75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .doc-actions-container { display: flex; gap: .5rem; margin-top: .75rem; }
+    .doc-action-btn { flex-grow: 1; padding: .5rem .6rem; border-radius: .5rem; font-size: .75rem; font-weight: 500; text-align: center; cursor: pointer; border: none; }
+    .btn-view { background-color: #6366f1; color: #fff; }
+    .btn-view:hover { background-color: #4f46e5; }
+    .btn-delete { background-color: #ef4444; color: #fff; }
+    .btn-delete:hover { background-color: #dc2626; }
+    .btn-analyze { background-color: #10b981; color: #fff; }
+    .btn-analyze:hover { background-color: #059669; }
+
+    #input-footer-area { flex-shrink: 0; border-top: 1px solid #e5e7eb; }
+    .input-area.dark-mode { background-color: #121212; border-color: #374151; }
+    .controls.dark-mode { background-color: #0e0e0e; color: #fff; border-color: #374151; }
+    #user-input.dark-mode { background-color: #1f1f1f; color: #fff; border-color: #4b5563; }
+    .dark-mode select { background-color: #1a1a1a; color: #fff; border-color: #374151; }
+    .controls.dark-mode span, .controls.dark-mode label { color: #fff !important; }
+    .controls.dark-mode .font-bold { color: #818cf8 !important; }
+
+    /* ===== Voice Search Button ===== */
+    .voice-btn { position: relative; display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 0.75rem; border: none; cursor: pointer; transition: all 0.3s; flex-shrink: 0; }
+    .voice-btn.idle { background-color: #6366f1; color: #fff; }
+    .voice-btn.idle:hover { background-color: #4f46e5; }
+    .voice-btn.listening { background-color: #ef4444; color: #fff; animation: pulse-voice 1.2s ease-in-out infinite; }
+    .voice-btn.unsupported { background-color: #9ca3af; color: #fff; cursor: not-allowed; opacity: 0.5; }
+    @keyframes pulse-voice { 0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); } 50% { box-shadow: 0 0 0 12px rgba(239,68,68,0); } }
+    .voice-btn svg { width: 24px; height: 24px; }
+
+    /* ===== Autocomplete Dropdown ===== */
+    .ac-dropdown { position: absolute; bottom: 100%; left: 0; right: 0; z-index: 100; background: #fff; border: 1px solid #d1d5db; border-radius: 0.75rem; box-shadow: 0 -8px 24px rgba(0,0,0,0.12); max-height: 280px; overflow-y: auto; display: none; margin-bottom: 4px; }
+    .ac-dropdown.open { display: block; }
+    .ac-dropdown.dark-mode { background: #1a1a1a; border-color: #374151; box-shadow: 0 -8px 24px rgba(0,0,0,0.4); }
+    .ac-item { padding: 10px 14px; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 8px; color: #374151; border-bottom: 1px solid #f1f5f9; transition: background-color 0.15s; }
+    .ac-item:last-child { border-bottom: none; }
+    .ac-item:hover, .ac-item.highlighted { background-color: #eef2ff; color: #4338ca; }
+    .ac-dropdown.dark-mode .ac-item { color: #d1d5db; border-bottom-color: #2a2a2a; }
+    .ac-dropdown.dark-mode .ac-item:hover, .ac-dropdown.dark-mode .ac-item.highlighted { background-color: #312e81; color: #c7d2fe; }
+    .ac-item-icon { font-size: 1rem; flex-shrink: 0; }
+    .ac-item-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ac-item-type { margin-left: auto; font-size: 0.65rem; font-weight: 600; padding: 2px 6px; border-radius: 9999px; background: #e0e7ff; color: #4338ca; flex-shrink: 0; }
+    .ac-dropdown.dark-mode .ac-item-type { background: #312e81; color: #c7d2fe; }
+    .ac-section-label { padding: 6px 14px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9ca3af; background: #f9fafb; border-bottom: 1px solid #f1f5f9; }
+    .ac-dropdown.dark-mode .ac-section-label { background: #111; color: #6b7280; border-bottom-color: #2a2a2a; }
+
+    /* ===== NLP Badge ===== */
+    .nlp-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.68rem; font-weight: 600; padding: 2px 8px; border-radius: 9999px; white-space: nowrap; }
+    .nlp-badge.intent-ticket_lookup { background: #d1fae5; color: #065f46; }
+    .nlp-badge.intent-ticket_search { background: #dbeafe; color: #1e40af; }
+    .nlp-badge.intent-document_qa { background: #fef3c7; color: #92400e; }
+    .nlp-badge.intent-web_search { background: #ede9fe; color: #5b21b6; }
+    .nlp-badge.intent-greeting { background: #f3f4f6; color: #6b7280; }
+    .nlp-badge.intent-unclear { background: #fee2e2; color: #991b1b; }
+    .nlp-indicator { display: none; align-items: center; gap: 6px; padding: 4px 10px; font-size: 0.75rem; color: #64748b; flex-wrap: wrap; }
+    .nlp-indicator.active { display: flex; }
+    .nlp-indicator.dark-mode { color: #94a3b8; }
+    .nlp-correction { color: #4f46e5; cursor: pointer; text-decoration: underline; font-weight: 600; }
+    .nlp-correction:hover { color: #3730a3; }
+    .dark-mode .nlp-correction { color: #818cf8; }
+    .dark-mode .nlp-correction:hover { color: #a5b4fc; }
+
+    .status-bar { padding: .5rem 1rem; font-weight: 500; }
+    .status-bar.dark-mode { background-color: #1a1a1a; color: #e5e7eb; }
+    .status-bar.dark-mode[style*="red"] { background-color: #b91c1c !important; color: #fff !important; }
+
+    /* ===== Deltek branded header ===== */
+    .deltek-header { background: linear-gradient(135deg, #0033a0 0%, #1a56c4 60%, #4f46e5 100%); padding: 0.75rem 1.5rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 12px rgba(0,51,160,0.25); }
+    .deltek-header.dark-mode { background: linear-gradient(135deg, #0a1628 0%, #162040 60%, #1e1b4b 100%); box-shadow: 0 2px 12px rgba(0,0,0,0.5); }
+    .deltek-logo-area { display: flex; align-items: center; gap: 14px; }
+    .deltek-logo-area img { height: 36px; filter: brightness(0) invert(1); }
+    .deltek-logo-area .app-title { font-size: 1.15rem; font-weight: 700; color: #fff; letter-spacing: 0.02em; line-height: 1.2; }
+    .deltek-logo-area .app-subtitle { font-size: 0.72rem; color: rgba(255,255,255,0.7); font-weight: 400; }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+    .header-actions button { font-size: 0.78rem; padding: 6px 14px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.25); color: #fff; background: rgba(255,255,255,0.1); backdrop-filter: blur(4px); cursor: pointer; transition: all 0.2s; font-weight: 500; }
+    .header-actions button:hover { background: rgba(255,255,255,0.22); border-color: rgba(255,255,255,0.45); }
+    .header-actions .btn-new-chat { background: rgba(16,185,129,0.85); border-color: rgba(16,185,129,0.6); }
+    .header-actions .btn-new-chat:hover { background: rgba(16,185,129,1); }
+
+    /* ===== Searchable SN Group Dropdown ===== */
+    .sn-group-wrapper { position: relative; min-width: 180px; max-width: 240px; }
+    .sn-group-toggle { display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%; padding: 4px 8px; border-radius: .5rem; border: 1px solid #d1d5db; background: #fff; font-size: .75rem; cursor: pointer; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sn-group-toggle:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.15); }
+    .sn-group-toggle .arrow { font-size: .6rem; margin-left: 2px; flex-shrink: 0; }
+    .sn-group-panel { display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 50; margin-top: 2px; border: 1px solid #d1d5db; border-radius: .5rem; background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.12); max-height: 260px; overflow: hidden; flex-direction: column; }
+    .sn-group-panel.open { display: flex; }
+    .sn-group-search { width: 100%; padding: 6px 8px; border: none; border-bottom: 1px solid #e5e7eb; font-size: .75rem; outline: none; }
+    .sn-group-search::placeholder { color: #9ca3af; }
+    .sn-group-list { overflow-y: auto; max-height: 220px; }
+    .sn-group-option { padding: 5px 10px; font-size: .75rem; cursor: pointer; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sn-group-option:hover, .sn-group-option.highlighted { background: #eef2ff; color: #4338ca; }
+    .sn-group-option.selected { background: #e0e7ff; font-weight: 600; }
+    .sn-group-count { padding: 4px 8px; font-size: .65rem; color: #9ca3af; border-top: 1px solid #e5e7eb; text-align: center; flex-shrink: 0; }
+    body.dark-mode .sn-group-toggle { background: #1a1a1a; border-color: #374151; color: #e5e7eb; }
+    body.dark-mode .sn-group-panel { background: #1a1a1a; border-color: #374151; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+    body.dark-mode .sn-group-search { background: #1a1a1a; color: #e5e7eb; border-bottom-color: #374151; }
+    body.dark-mode .sn-group-option { color: #d1d5db; }
+    body.dark-mode .sn-group-option:hover, body.dark-mode .sn-group-option.highlighted { background: #312e81; color: #c7d2fe; }
+    body.dark-mode .sn-group-option.selected { background: #3730a3; color: #e0e7ff; }
+    body.dark-mode .sn-group-count { color: #6b7280; border-top-color: #374151; }
+
+    /* ===== Source result sections ===== */
+    .source-section { border-radius: 0.75rem; padding: .6rem .85rem; margin-bottom: 0.15rem; }
+    .source-section.web-section { background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%); border-left: 4px solid #3b82f6; }
+    .source-section.doc-section { background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%); border-left: 4px solid #eab308; }
+    .source-section.sn-section { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 4px solid #22c55e; }
+    .bot-message.dark-mode .source-section.web-section { background: linear-gradient(135deg, #0c1929 0%, #111827 100%); border-left-color: #60a5fa; }
+    .bot-message.dark-mode .source-section.doc-section { background: linear-gradient(135deg, #1a1a0e 0%, #1c1917 100%); border-left-color: #facc15; }
+    .bot-message.dark-mode .source-section.sn-section { background: linear-gradient(135deg, #0a1f13 0%, #0f1f15 100%); border-left-color: #4ade80; }
+    .source-section-header { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 0.9rem; margin-bottom: 0.25rem; padding-bottom: 0.2rem; border-bottom: 1px solid rgba(0,0,0,0.08); }
+    .bot-message.dark-mode .source-section-header { border-bottom-color: rgba(255,255,255,0.08); }
+    .source-section-header .source-icon { font-size: 1.1rem; }
+    .source-section-header .source-label { color: #1e293b; }
+    .source-section-header .source-label.web { color: #1d4ed8; }
+    .source-section-header .source-label.doc { color: #a16207; }
+    .source-section-header .source-label.sn { color: #15803d; }
+    .bot-message.dark-mode .source-section-header .source-label.web { color: #93c5fd; }
+    .bot-message.dark-mode .source-section-header .source-label.doc { color: #fde047; }
+    .bot-message.dark-mode .source-section-header .source-label.sn { color: #86efac; }
+    .source-section-body { font-size: 0.86rem; line-height: 1.45; color: #334155; }
+    .bot-message.dark-mode .source-section-body { color: #cbd5e1; }
+
+    /* Source details / references */
+    .source-refs { margin-top: 0.6rem; padding-top: 0.5rem; border-top: 1px dashed rgba(0,0,0,0.1); }
+    .bot-message.dark-mode .source-refs { border-top-color: rgba(255,255,255,0.1); }
+    .source-refs summary { font-size: 0.78rem; font-weight: 600; color: #64748b; cursor: pointer; user-select: none; }
+    .source-refs summary:hover { color: #4f46e5; }
+    .bot-message.dark-mode .source-refs summary { color: #94a3b8; }
+    .bot-message.dark-mode .source-refs summary:hover { color: #a5b4fc; }
+    .source-ref-list { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.4rem; }
+    .source-ref-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 9999px; font-size: 0.72rem; font-weight: 500; border: 1px solid rgba(0,0,0,0.08); background: rgba(255,255,255,0.7); color: #475569; text-decoration: none; transition: all 0.2s; }
+    .source-ref-chip:hover { background: #4f46e5; color: #fff; border-color: #4f46e5; text-decoration: none; }
+    .bot-message.dark-mode .source-ref-chip { background: rgba(255,255,255,0.06); color: #94a3b8; border-color: rgba(255,255,255,0.1); }
+    .bot-message.dark-mode .source-ref-chip:hover { background: #6366f1; color: #fff; border-color: #6366f1; }
+
+    .inline-export-container { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; padding-top: 5px; border-top: 1px solid rgba(0,0,0,0.1); }
+    .inline-export-btn { padding: 2px 6px; border-radius: 4px; font-size: .65rem; font-weight: 600; color: #fff; cursor: pointer; border: none; opacity: .95; }
+    .inline-export-btn:hover { opacity: 1; transform: translateY(-1px); }
+
+    /* ===== Modal (Centered) ===== */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0,0,0,0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+    }
+    .modal-content {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 0.75rem;
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+      margin-left: auto;
+      margin-right: auto;
+      opacity: 0;
+      transform: scale(0.95);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    .modal-content.dark-mode { background-color: #1a1a1a; color: white; }
+    .modal-content.dark-mode input, .modal-content.dark-mode textarea { background-color: #2a2a2a; color: white; border-color: #444; }
+    .modal.show .modal-content { opacity: 1; transform: scale(1); }
+
+    /* ===== Translator UI skeleton ===== */
+    .translation-controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; align-items: center; }
+    .translate-label { font-size: .70rem; font-weight: 600; color: #4b5563; padding: 2px 6px; border-radius: 6px; background-color: #f3f4f6; }
+    .bot-message.dark-mode .translate-label { color: #d1d5db; background-color: #262626; }
+    .translate-btn, .translate-reset-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 24px; padding: 0 8px; border-radius: 9999px; font-size: .70rem; font-weight: 600; border: 1px solid rgba(0,0,0,0.1); background-color: #fff; color: #374151; cursor: pointer; }
+    .translate-reset-btn { display: none; border-color: #c7d2fe; color: #4f46e5; background-color: #eef2ff; }
+    .translated-badge { display: inline-flex; align-items: center; gap: 6px; font-size: .70rem; font-weight: 700; color: #065f46; background-color: #d1fae5; border: 1px solid #10b981; padding: 2px 6px; border-radius: 9999px; }
+
+    /* ===== Markdown / SN rendered content ===== */
+    .message-text h2 { font-size: 1.1rem; font-weight: 700; margin: .35rem 0 .2rem; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: .15rem; }
+    .message-text h3 { font-size: .95rem; font-weight: 700; margin: .3rem 0 .15rem; color: #334155; }
+    .message-text h4 { font-size: .88rem; font-weight: 600; margin: .2rem 0 .1rem; color: #4f46e5; }
+    .bot-message.dark-mode .message-text h2 { color: #e2e8f0; border-bottom-color: #374151; }
+    .bot-message.dark-mode .message-text h3 { color: #cbd5e1; }
+    .bot-message.dark-mode .message-text h4 { color: #a5b4fc; }
+    .message-text blockquote { border-left: 3px solid #6366f1; margin: .25rem 0; padding: .25rem .6rem; background: #f8fafc; color: #475569; font-size: .86rem; border-radius: 0 .4rem .4rem 0; }
+    .bot-message.dark-mode .message-text blockquote { background: #1e1e2e; color: #cbd5e1; border-left-color: #818cf8; }
+    .message-text ul, .message-text ol { margin: .15rem 0 .15rem 1.1rem; }
+    .message-text li { margin-bottom: .05rem; }
+    .message-text table { width: 100%; border-collapse: collapse; margin: .25rem 0; font-size: .85rem; }
+    .message-text th, .message-text td { border: 1px solid #e2e8f0; padding: .35rem .6rem; text-align: left; }
+    .message-text th { background: #f1f5f9; font-weight: 600; }
+    .bot-message.dark-mode .message-text th { background: #1e293b; color: #e2e8f0; }
+    .bot-message.dark-mode .message-text td { border-color: #374151; }
+    .message-text code { background: #f1f5f9; padding: .1rem .35rem; border-radius: .25rem; font-size: .82rem; font-family: 'Consolas', monospace; }
+    .bot-message.dark-mode .message-text code { background: #1e293b; color: #e2e8f0; }
+    .message-text hr { border: none; border-top: 1px solid #e2e8f0; margin: .3rem 0; }
+    .bot-message.dark-mode .message-text hr { border-top-color: #374151; }
+    .message-text p { margin: .1rem 0; }
+    .message-text p:empty { display: none; }
+    .message-text strong { font-weight: 700; }
+    .message-text em { font-style: italic; color: #64748b; }
+    .bot-message.dark-mode .message-text em { color: #94a3b8; }
+
+    /* ===== Web answer grid ===== */
+    .web-answer-content { display: flex; flex-direction: column; gap: .3rem; }
+    .web-answer-query { display: flex; align-items: baseline; gap: .4rem; font-size: .82rem; color: #475569; background: rgba(59,130,246,0.06); padding: .3rem .6rem; border-radius: .4rem; margin-bottom: .15rem; }
+    .web-answer-query strong { color: #1d4ed8; font-size: .78rem; }
+    .bot-message.dark-mode .web-answer-query { background: rgba(96,165,250,0.08); color: #93c5fd; }
+    .bot-message.dark-mode .web-answer-query strong { color: #60a5fa; }
+    .web-answer-body { font-size: .86rem; line-height: 1.45; }
+
+    /* ===== Document result grid ===== */
+    .doc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .45rem; margin: .35rem 0; }
+    .doc-card { background: #fffbeb; border: 1px solid #fde68a; border-radius: .55rem; padding: .45rem .65rem; display: flex; flex-direction: column; gap: .15rem; transition: box-shadow .2s, border-color .2s; }
+    .doc-card:hover { box-shadow: 0 3px 10px rgba(234,179,8,0.15); border-color: #f59e0b; }
+    .bot-message.dark-mode .doc-card { background: #1c1917; border-color: #78350f; }
+    .bot-message.dark-mode .doc-card:hover { border-color: #f59e0b; box-shadow: 0 3px 10px rgba(234,179,8,0.2); }
+    .doc-card-icon { font-size: 1.1rem; }
+    .doc-card-header { display: flex; align-items: center; gap: .35rem; }
+    .doc-card-name { font-weight: 700; font-size: .84rem; color: #92400e; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .doc-card-name:hover { text-decoration: underline; }
+    .bot-message.dark-mode .doc-card-name { color: #fde047; }
+    .doc-card-page { font-size: .68rem; font-weight: 600; padding: 1px 7px; border-radius: 9999px; background: #fef3c7; color: #92400e; white-space: nowrap; }
+    .bot-message.dark-mode .doc-card-page { background: #78350f; color: #fcd34d; }
+    .doc-answer-body { font-size: .86rem; line-height: 1.45; margin-bottom: .2rem; }
+
+    /* SN record grid */
+    .sn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .5rem; margin: .4rem 0; }
+    .sn-card { background: #fff; border: 1px solid #e2e8f0; border-radius: .6rem; padding: .55rem .75rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: .2rem; transition: box-shadow .2s, border-color .2s; }
+    .sn-card:hover { box-shadow: 0 4px 12px rgba(99,102,241,0.15); border-color: #a5b4fc; }
+    .bot-message.dark-mode .sn-card { background: #1e1e2e; border-color: #334155; }
+    .bot-message.dark-mode .sn-card:hover { border-color: #6366f1; box-shadow: 0 4px 12px rgba(99,102,241,0.25); }
+    .sn-card-header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+    .sn-card-number { font-weight: 700; font-size: .92rem; color: #4338ca; text-decoration: none; }
+    .sn-card-number:hover { text-decoration: underline; }
+    .bot-message.dark-mode .sn-card-number { color: #a5b4fc; }
+    .sn-card-type { font-size: .68rem; font-weight: 600; padding: 2px 8px; border-radius: 9999px; background: #eef2ff; color: #4338ca; white-space: nowrap; }
+    .bot-message.dark-mode .sn-card-type { background: #312e81; color: #c7d2fe; }
+    .sn-card-desc { font-size: .82rem; color: #475569; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .bot-message.dark-mode .sn-card-desc { color: #94a3b8; }
+    .sn-card-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+    .sn-badge { font-size: .68rem; font-weight: 600; padding: 1px 7px; border-radius: 9999px; display: inline-flex; align-items: center; gap: 3px; }
+    .sn-badge-state { background: #d1fae5; color: #065f46; }
+    .sn-badge-state.open { background: #fef3c7; color: #92400e; }
+    .bot-message.dark-mode .sn-badge-state { background: #064e3b; color: #6ee7b7; }
+    .bot-message.dark-mode .sn-badge-state.open { background: #78350f; color: #fcd34d; }
+    .sn-badge-priority { background: #fee2e2; color: #991b1b; }
+    .sn-badge-priority.low { background: #d1fae5; color: #065f46; }
+    .sn-badge-priority.med { background: #fef3c7; color: #92400e; }
+    .bot-message.dark-mode .sn-badge-priority { background: #7f1d1d; color: #fca5a5; }
+    .bot-message.dark-mode .sn-badge-priority.low { background: #064e3b; color: #6ee7b7; }
+    .bot-message.dark-mode .sn-badge-priority.med { background: #78350f; color: #fcd34d; }
+    .sn-card-meta { font-size: .72rem; color: #6b7280; margin-top: auto; padding-top: .35rem; border-top: 1px solid #f1f5f9; }
+    .bot-message.dark-mode .sn-card-meta { color: #9ca3af; border-top-color: #1e293b; }
+    .sn-card-solution { font-size: .75rem; color: #374151; background: #f8fafc; padding: .4rem .6rem; border-radius: .4rem; border-left: 3px solid #10b981; margin-top: .25rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .bot-message.dark-mode .sn-card-solution { background: #0f172a; color: #cbd5e1; border-left-color: #34d399; }
+
+    /* SN record links */
+    .sn-record-link { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; font-weight: 600; font-size: .85rem; text-decoration: none; transition: all .2s; }
+    .sn-record-link { background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
+    .sn-record-link:hover { background: #4338ca; color: #fff; border-color: #4338ca; text-decoration: none; }
+    .bot-message.dark-mode .sn-record-link { background: #312e81; color: #c7d2fe; border-color: #4338ca; }
+    .bot-message.dark-mode .sn-record-link:hover { background: #4f46e5; color: #fff; }
+    .message-text a:not(.sn-record-link) { color: #4f46e5; text-decoration: underline; font-weight: 500; }
+    .message-text a:not(.sn-record-link):hover { color: #3730a3; }
+    .bot-message.dark-mode .message-text a:not(.sn-record-link) { color: #a5b4fc; }
+    .bot-message.dark-mode .message-text a:not(.sn-record-link):hover { color: #c7d2fe; }
+  </style>
+
+  <!-- Markdown renderer -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+
+<body class="bg-gray-100 font-sans text-[14px]">
+  <div class="chat-container" id="chat-container">
+    <!-- Sidebar -->
+    <div id="sidebar">
+      <div id="sidebar-header" class="flex items-center">
+        <span>Conversation History 📚</span>
+        <button id="clear-history-button" title="Clear Local History" class="bg-red-500 text-white px-3 py-1 rounded-full text-xs hover:bg-red-600 transition-colors ml-4">Clear Local</button>
+      </div>
+      <div id="history-content" class="p-4 history-content flex flex-col-reverse gap-3"></div>
+    </div>
+
+    <!-- Main Column -->
+    <div class="main-chat-column">
+      <header class="deltek-header flex-shrink-0" id="main-header">
+        <div class="deltek-logo-area">
+          <svg width="120" height="36" viewBox="0 0 320 80" xmlns="http://www.w3.org/2000/svg">
+            <text x="0" y="55" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="56" fill="white" letter-spacing="3">DELTEK</text>
+          </svg>
+          <div style="border-left: 1px solid rgba(255,255,255,0.3); padding-left: 14px; height: 36px; display: flex; flex-direction: column; justify-content: center;">
+            <span class="app-title">Solution Manager</span>
+            <span class="app-subtitle">Web &bull; Documents &bull; ServiceNow</span>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button id="new-chat-button" class="btn-new-chat flex items-center" title="Start a New Conversation">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+            New Chat
+          </button>
+          <button id="dark-mode-toggle" title="Toggle Dark Mode">🌙 Dark Mode</button>
+        </div>
+      </header>
+
+      <div class="content-area">
+        <main id="chat-box" class="chat-box"></main>
+      </div>
+
+      <!-- Input / Controls -->
+      <div id="input-footer-area" class="flex-shrink-0">
+        <div id="input-container" class="relative">
+          <div id="ac-dropdown" class="ac-dropdown"></div>
+          <div id="nlp-indicator" class="nlp-indicator"></div>
+          <div class="input-area p-4 bg-gray-50 flex items-end space-x-3">
+            <button id="manual-analysis-button" class="p-3 bg-action-green text-white rounded-xl hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-action-green transition-colors flex-shrink-0 h-12" title="Analyze Text Manually">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.932zm-7.906 9.414a2.25 2.25 0 00-1.12 1.12l-.5 1.75l1.75-.5a2.25 2.25 0 001.12-1.12l.5-1.75z"/></svg>
+            </button>
+
+            <button id="upload-button" class="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors flex-shrink-0 h-12" title="Upload Document">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            </button>
+
+            <input id="user-input" type="text" class="flex-1 p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 h-12" placeholder="Ask a question — searches Web, Documents, and ServiceNow automatically..." autocomplete="off" spellcheck="true" />
+
+            <button id="voice-button" class="voice-btn idle" title="Voice Search — Click to speak">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
+            </button>
+
+            <button id="send-button" class="p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors flex-shrink-0 h-12" title="Send Message">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="controls p-4 bg-gray-100 flex items-center justify-between flex-wrap gap-4 text-sm text-gray-700">
+          <div class="flex items-center space-x-1 font-semibold text-primary-indigo">
+            <span>🔍 <strong>Web</strong> → <strong>Docs</strong> → <strong>ServiceNow</strong></span>
+          </div>
+
+          <!-- SN Group Filter -->
+          <div class="flex items-center space-x-2">
+            <label class="whitespace-nowrap" title="Filter ServiceNow results by assignment group">SN Group:</label>
+            <div class="sn-group-wrapper" id="sn-group-wrapper">
+              <button type="button" class="sn-group-toggle" id="sn-group-toggle">All Groups <span class="arrow">&#9662;</span></button>
+              <div class="sn-group-panel" id="sn-group-panel">
+                <input type="text" class="sn-group-search" id="sn-group-search" placeholder="Search groups..." autocomplete="off" />
+                <div class="sn-group-list" id="sn-group-list"></div>
+                <div class="sn-group-count" id="sn-group-count"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <label for="font-size" class="whitespace-nowrap">Font Size:</label>
+            <select id="font-size" class="rounded-lg px-2 py-1 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs">
+              <option value="12">12</option>
+              <option value="14" selected>14</option>
+              <option value="16">16</option>
+              <option value="18">18</option>
+            </select>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <label for="language-select" class="whitespace-nowrap">Auto-Translate:</label>
+            <select id="language-select" class="rounded-lg px-2 py-1 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs">
+              <option value="en" selected>English 🇬🇧</option>
+            </select>
+          </div>
+
+          <!-- SN Date Window -->
+          <div class="flex items-center space-x-2">
+            <label for="sn-window" class="whitespace-nowrap" title="Adds 'last N days' to ServiceNow step only">SN Date Window:</label>
+            <select id="sn-window" class="rounded-lg px-2 py-1 border border-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-xs">
+              <option value="none" selected>Default</option>
+              <option value="7">Last 7 days</option>
+              <option value="30">Last 30 days</option>
+              <option value="60">Last 60 days</option>
+              <option value="90">Last 90 days</option>
+              <option value="180">Last 180 days</option>
+              <option value="365">Last 1 year</option>
+              <option value="730">Last 2 years</option>
+            </select>
+          </div>
+
+          <div class="flex items-center space-x-2 ml-auto">
+            <span class="text-gray-500 mr-1 whitespace-nowrap">Export Chat:</span>
+            <button id="export-pdf" class="export-btn export-pdf text-white bg-red-500 px-2 py-1 rounded">PDF</button>
+            <button id="export-word" class="export-btn export-word text-white bg-blue-500 px-2 py-1 rounded">Word</button>
+            <button id="export-xlsx" class="export-btn export-xlsx text-white bg-green-500 px-2 py-1 rounded">XLSX</button>
+            <button id="export-ppt" class="export-btn export-ppt text-white bg-orange-500 px-2 py-1 rounded">PPT</button>
+            <button id="export-csv" class="export-btn export-csv text-white bg-lime-600 px-2 py-1 rounded">CSV</button>
+            <button id="export-txt" class="export-btn export-txt text-white bg-gray-500 px-2 py-1 rounded">TXT</button>
+
+          </div>
+        </div>
+      </div>
+
+      <div id="status-bar" class="status-bar p-2 text-center text-sm font-medium bg-gray-300 flex-shrink-0">Ready</div>
+    </div>
+  </div>
+
+  <input type="file" id="file-input" class="hidden" accept=".pdf,.json,.txt,.csv,.doc,.docx,.ppt,.pptx,.xlsx" multiple />
+
+  <!-- Manual Analyzer Modal -->
+  <div id="manual-analysis-modal" class="modal hidden">
+    <div id="modal-content" class="modal-content">
+      <h2 class="text-xl font-bold mb-4">Manual Text Analyzer</h2>
+      <div class="space-y-4">
+        <div>
+          <label for="analysis-subject" class="block text-sm font-medium">Subject (Max 500 chars)</label>
+          <input type="text" id="analysis-subject" maxlength="500" placeholder="A brief title for this document" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+        <div>
+          <label for="analysis-body" class="block text-sm font-medium">Body (Max 10000 chars)</label>
+          <textarea id="analysis-body" maxlength="10000" rows="8" placeholder="Paste or type the text you want to analyze or index..." class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+        </div>
+        <div id="analysis-error" class="text-red-500 text-sm hidden"></div>
+      </div>
+      <div class="mt-6 flex justify-end space-x-3">
+        <button id="modal-close-button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">Close</button>
+        <button id="modal-analyze-button" class="px-4 py-2 text-sm font-medium text-white bg-action-green rounded-md hover:bg-green-600">Analyze & Export</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== CONFIG =====
+    const SERVER_URL = window.location.origin;
+    const OPENAI_API_KEY = ""; // leave empty (client translation disabled; server-side used)
+
+    // ===== GLOBAL STATE =====
+    let conversationHistory = JSON.parse(localStorage.getItem('conversationHistory')) || [];
+    const MAX_HISTORY = 10;
+    const MAX_SOURCES = 10;
+    let lastUserQuery = '';
+    let SN_BASE_URL = ''; // fetched from server on init
+
+    // Language labels (for the status/badge)
+    const LANG_LABELS = { en:'English', es:'Español', fr:'Français', de:'Deutsch', ja:'日本語', ko:'한국어', ru:'Русский', zh:'中文', ar:'العربية', hi:'हिंदी', tl:'Filipino' };
+
+    // ===== DOM =====
+    const userInput = document.getElementById('user-input');
+    const sendButton = document.getElementById('send-button');
+    const chatBox = document.getElementById('chat-box');
+    const darkModeToggle = document.getElementById('dark-mode-toggle');
+    const fontSizeSelect = document.getElementById('font-size');
+    const statusBar = document.getElementById('status-bar');
+    const fileInput = document.getElementById('file-input');
+    const uploadButton = document.getElementById('upload-button');
+    const languageSelect = document.getElementById('language-select');
+    const historyContent = document.getElementById('history-content');
+    const clearHistoryButton = document.getElementById('clear-history-button');
+    const newChatButton = document.getElementById('new-chat-button');
+
+    const exportPdfButton = document.getElementById('export-pdf');
+    const exportWordButton = document.getElementById('export-word');
+    const exportXlsxButton = document.getElementById('export-xlsx');
+    const exportPptButton = document.getElementById('export-ppt');
+    const exportTxtButton = document.getElementById('export-txt');
+    const exportCsvButton = document.getElementById('export-csv');
+    const manualAnalysisButton = document.getElementById('manual-analysis-button');
+    const modal = document.getElementById('manual-analysis-modal');
+    const modalContent = document.getElementById('modal-content');
+    const modalCloseButton = document.getElementById('modal-close-button');
+    const modalAnalyzeButton = document.getElementById('modal-analyze-button');
+    const analysisSubject = document.getElementById('analysis-subject');
+    const analysisBody = document.getElementById('analysis-body');
+    const analysisError = document.getElementById('analysis-error');
+    const snWindowSelect = document.getElementById('sn-window');
+
+    // ===== Voice Search (Web Speech API) =====
+    const voiceButton = document.getElementById('voice-button');
+    const acDropdown = document.getElementById('ac-dropdown');
+    const nlpIndicator = document.getElementById('nlp-indicator');
+    let _recognition = null;
+    let _isListening = false;
+
+    function initVoiceSearch() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        voiceButton.classList.remove('idle');
+        voiceButton.classList.add('unsupported');
+        voiceButton.title = 'Voice search not supported in this browser';
+        voiceButton.disabled = true;
+        console.warn('SpeechRecognition API not available in this browser.');
+        return;
+      }
+
+      _recognition = new SpeechRecognition();
+      _recognition.continuous = true;
+      _recognition.interimResults = true;
+      _recognition.lang = 'en-US';
+      _recognition.maxAlternatives = 1;
+
+      _recognition.onstart = () => {
+        console.log('Voice recognition started');
+        _isListening = true;
+        voiceButton.classList.remove('idle');
+        voiceButton.classList.add('listening');
+        voiceButton.title = 'Listening... Click to stop';
+        updateStatus('🎤 Listening... Speak your query');
+      };
+
+      _recognition.onresult = (event) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+        // Show results in the input field
+        const display = finalTranscript || interimTranscript;
+        if (display) {
+          userInput.value = display;
+          updateStatus(`🎤 ${finalTranscript ? 'Captured' : 'Hearing'}: "${display}"`);
+        }
+        if (finalTranscript) {
+          runNlpAnalysis(finalTranscript);
+        }
+      };
+
+      _recognition.onaudiostart = () => {
+        console.log('Audio capturing started — microphone is active');
+        updateStatus('🎤 Microphone active — speak now...');
+      };
+
+      _recognition.onspeechstart = () => {
+        console.log('Speech detected');
+        updateStatus('🎤 Speech detected — keep talking...');
+      };
+
+      _recognition.onerror = (event) => {
+        console.warn('Speech recognition error:', event.error, event);
+        // "aborted" fires when we manually stop — not a real error
+        if (event.error === 'aborted') return;
+        if (event.error === 'no-speech') {
+          updateStatus('🎤 No speech detected. Click mic and try again.', true);
+        } else if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          updateStatus('🎤 Microphone access denied. Allow microphone in browser settings (click lock icon in address bar).', true);
+        } else if (event.error === 'network') {
+          updateStatus('🎤 Network error — speech recognition requires an internet connection.', true);
+        } else {
+          updateStatus(`🎤 Voice error: ${event.error}`, true);
+        }
+        _isListening = false;
+        voiceButton.classList.remove('listening');
+        voiceButton.classList.add('idle');
+        voiceButton.title = 'Voice Search — Click to speak';
+      };
+
+      _recognition.onend = () => {
+        console.log('Voice recognition ended. _isListening:', _isListening);
+        // Only reset UI if we didn't intentionally stop
+        if (_isListening) {
+          // Recognition ended unexpectedly (e.g., silence timeout in continuous mode)
+          // Auto-restart for better UX
+          try {
+            _recognition.start();
+            return;
+          } catch(e) {
+            console.warn('Could not restart recognition:', e);
+          }
+        }
+        voiceButton.classList.remove('listening');
+        voiceButton.classList.add('idle');
+        voiceButton.title = 'Voice Search — Click to speak';
+      };
+
+      console.log('Voice search initialized successfully');
+    }
+
+    async function startVoice() {
+      if (!_recognition) {
+        updateStatus('🎤 Voice search not available. Use Chrome or Edge for best support.', true);
+        return;
+      }
+
+      // Step 1: Explicitly request microphone permission via getUserMedia
+      // This FORCES the browser to show the permission prompt
+      try {
+        updateStatus('🎤 Requesting microphone access...');
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Permission granted — stop the stream (SpeechRecognition manages its own)
+        stream.getTracks().forEach(track => track.stop());
+        console.log('Microphone permission granted');
+      } catch (micErr) {
+        console.error('Microphone permission error:', micErr);
+        if (micErr.name === 'NotAllowedError' || micErr.name === 'PermissionDeniedError') {
+          updateStatus('🎤 Microphone permission denied. Click the 🔒 icon in the address bar → Site settings → Allow Microphone.', true);
+        } else if (micErr.name === 'NotFoundError') {
+          updateStatus('🎤 No microphone found. Please connect a microphone and try again.', true);
+        } else {
+          updateStatus(`🎤 Microphone error: ${micErr.message}`, true);
+        }
+        return;
+      }
+
+      // Step 2: Start SpeechRecognition now that we have mic permission
+      _isListening = true;
+      voiceButton.classList.remove('idle');
+      voiceButton.classList.add('listening');
+      voiceButton.title = 'Listening... Click to stop';
+
+      try {
+        _recognition.start();
+        console.log('SpeechRecognition.start() called');
+      } catch (e) {
+        console.warn('Recognition start error:', e);
+        if (e.name === 'InvalidStateError') {
+          // Already running — stop and restart
+          _recognition.abort();
+          setTimeout(() => {
+            try {
+              _recognition.start();
+              console.log('SpeechRecognition restarted');
+            } catch(e2) {
+              console.error('Restart failed:', e2);
+              _isListening = false;
+              voiceButton.classList.remove('listening');
+              voiceButton.classList.add('idle');
+              updateStatus(`🎤 Could not start voice: ${e2.message}`, true);
+            }
+          }, 300);
+        } else {
+          _isListening = false;
+          voiceButton.classList.remove('listening');
+          voiceButton.classList.add('idle');
+          updateStatus(`🎤 Could not start voice: ${e.message}`, true);
+        }
+      }
+    }
+
+    function stopVoice() {
+      console.log('Stopping voice search');
+      _isListening = false;
+      voiceButton.classList.remove('listening');
+      voiceButton.classList.add('idle');
+      voiceButton.title = 'Voice Search — Click to speak';
+      try { _recognition?.abort(); } catch(e) { /* no-op */ }
+      if (userInput.value.trim()) {
+        updateStatus(`🎤 Voice captured: "${userInput.value.trim()}"`);
+      } else {
+        updateStatus('Voice search stopped.');
+      }
+    }
+
+    function toggleVoice() {
+      if (!_recognition) {
+        updateStatus('🎤 Voice search requires Chrome or Edge browser.', true);
+        return;
+      }
+      if (_isListening) {
+        stopVoice();
+      } else {
+        startVoice();
+      }
+    }
+
+    // ===== Autocomplete & Autocorrect =====
+    let _acHighlightIndex = -1;
+    let _acItems = [];
+    let _acDebounceTimer = null;
+    let _nlpDebounceTimer = null;
+    let _lastNlpResult = null;
+
+    // Client-side common IT term corrections (instant, no API call)
+    const AUTOCORRECT_MAP = {
+      'incidnet': 'incident', 'inicdent': 'incident', 'incdent': 'incident', 'incidant': 'incident',
+      'serviec': 'service', 'sevice': 'service', 'serivce': 'service',
+      'serivce now': 'servicenow', 'servie now': 'servicenow', 'servcenow': 'servicenow',
+      'outllook': 'outlook', 'outloo': 'outlook', 'oultook': 'outlook',
+      'exchagne': 'exchange', 'exchnage': 'exchange', 'exhange': 'exchange',
+      'tickt': 'ticket', 'tiket': 'ticket', 'tikect': 'ticket',
+      'problme': 'problem', 'probelm': 'problem', 'porblem': 'problem',
+      'chnage': 'change', 'channge': 'change', 'chagne': 'change',
+      'reqeust': 'request', 'requets': 'request', 'reuqest': 'request',
+      'knowlege': 'knowledge', 'knowldge': 'knowledge', 'knwledge': 'knowledge',
+      'assignmnet': 'assignment', 'asignment': 'assignment', 'assigment': 'assignment',
+      'vpnn': 'vpn', 'csico': 'cisco', 'cicso': 'cisco',
+      'micorsoft': 'microsoft', 'microsft': 'microsoft', 'mircosoft': 'microsoft',
+      'windwos': 'windows', 'widnows': 'windows', 'winodws': 'windows',
+      'upgarde': 'upgrade', 'upgade': 'upgrade', 'upgarade': 'upgrade',
+      'instal': 'install', 'intall': 'install', 'isntall': 'install',
+      'restatr': 'restart', 'retart': 'restart', 'restrat': 'restart',
+      'passwrod': 'password', 'passowrd': 'password', 'pasword': 'password',
+      'netowrk': 'network', 'netwrok': 'network', 'nework': 'network',
+      'applicaiton': 'application', 'appliation': 'application', 'aplication': 'application',
+      'dployment': 'deployment', 'deplyment': 'deployment', 'deploymnet': 'deployment',
+      'cofiguration': 'configuration', 'configuraion': 'configuration', 'confguration': 'configuration',
+      'databse': 'database', 'datbase': 'database', 'databaes': 'database',
+      'servre': 'server', 'sever': 'server', 'servr': 'server',
+      'tomacat': 'tomcat', 'tocmat': 'tomcat', 'tomact': 'tomcat',
+      'linnux': 'linux', 'linx': 'linux', 'liunx': 'linux',
+    };
+
+    function clientAutocorrect(text) {
+      if (!text) return text;
+      let corrected = text;
+      const words = text.toLowerCase().split(/\s+/);
+      for (let i = 0; i < words.length; i++) {
+        const fix = AUTOCORRECT_MAP[words[i]];
+        if (fix) {
+          // Preserve original casing of first char
+          const original = text.split(/\s+/)[i];
+          const replacement = original[0] === original[0].toUpperCase() ? fix.charAt(0).toUpperCase() + fix.slice(1) : fix;
+          corrected = corrected.replace(new RegExp('\\b' + escapeRegex(original) + '\\b', 'i'), replacement);
+        }
+      }
+      return corrected;
+    }
+
+    function escapeRegex(str) { return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+    // Build autocomplete items from local history + common queries
+    function getLocalSuggestions(partial) {
+      if (!partial || partial.length < 2) return [];
+      const lower = partial.toLowerCase();
+      const items = [];
+
+      // From conversation history
+      conversationHistory.forEach(h => {
+        if (h.query.toLowerCase().includes(lower)) {
+          items.push({ text: h.query, type: 'history', icon: '🕐' });
+        }
+      });
+
+      // Common IT query templates
+      const templates = [
+        'Show me INC', 'Find incidents about', 'Search for change requests',
+        'What does our documentation say about', 'How to troubleshoot',
+        'Find knowledge articles about', 'List recent problems with',
+        'Show all tickets assigned to', 'Find REQ', 'Show RITM',
+        'How to upgrade', 'How to configure', 'How to install',
+        'Explain the process for', 'What is the status of',
+        'Find incidents from last 30 days about', 'Search ServiceNow for',
+      ];
+      templates.forEach(t => {
+        if (t.toLowerCase().includes(lower) || lower.length >= 3) {
+          if (t.toLowerCase().startsWith(lower) || t.toLowerCase().includes(lower)) {
+            items.push({ text: t, type: 'template', icon: '💡' });
+          }
+        }
+      });
+
+      // Deduplicate
+      const seen = new Set();
+      return items.filter(item => {
+        const key = item.text.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }).slice(0, 8);
+    }
+
+    function renderAcDropdown(items, serverSuggestions) {
+      const isDark = document.body.classList.contains('dark-mode');
+      acDropdown.className = 'ac-dropdown open' + (isDark ? ' dark-mode' : '');
+      acDropdown.innerHTML = '';
+      _acItems = [];
+      _acHighlightIndex = -1;
+
+      const allItems = [];
+
+      // Local items
+      if (items.length > 0) {
+        const label = document.createElement('div');
+        label.className = 'ac-section-label';
+        label.textContent = 'Recent & Suggestions';
+        acDropdown.appendChild(label);
+        items.forEach(item => {
+          allItems.push(item);
+          const div = document.createElement('div');
+          div.className = 'ac-item';
+          div.innerHTML = `<span class="ac-item-icon">${item.icon}</span><span class="ac-item-text">${escHtml(item.text)}</span><span class="ac-item-type">${item.type}</span>`;
+          div.dataset.index = allItems.length - 1;
+          acDropdown.appendChild(div);
+        });
+      }
+
+      // Server suggestions
+      if (serverSuggestions && serverSuggestions.length > 0) {
+        const label = document.createElement('div');
+        label.className = 'ac-section-label';
+        label.textContent = 'AI Suggestions';
+        acDropdown.appendChild(label);
+        serverSuggestions.forEach(s => {
+          const item = { text: s, type: 'ai', icon: '🤖' };
+          allItems.push(item);
+          const div = document.createElement('div');
+          div.className = 'ac-item';
+          div.innerHTML = `<span class="ac-item-icon">🤖</span><span class="ac-item-text">${escHtml(s)}</span><span class="ac-item-type">ai</span>`;
+          div.dataset.index = allItems.length - 1;
+          acDropdown.appendChild(div);
+        });
+      }
+
+      _acItems = allItems;
+      if (allItems.length === 0) closeAcDropdown();
+    }
+
+    function closeAcDropdown() {
+      acDropdown.classList.remove('open');
+      acDropdown.innerHTML = '';
+      _acItems = [];
+      _acHighlightIndex = -1;
+    }
+
+    function selectAcItem(index) {
+      if (index >= 0 && index < _acItems.length) {
+        userInput.value = _acItems[index].text;
+        closeAcDropdown();
+        userInput.focus();
+        // Trigger NLP analysis on the selected suggestion
+        runNlpAnalysis(_acItems[index].text);
+      }
+    }
+
+    function navigateAc(direction) {
+      if (_acItems.length === 0) return;
+      const items = acDropdown.querySelectorAll('.ac-item');
+      if (_acHighlightIndex >= 0 && _acHighlightIndex < items.length) {
+        items[_acHighlightIndex].classList.remove('highlighted');
+      }
+      _acHighlightIndex += direction;
+      if (_acHighlightIndex < 0) _acHighlightIndex = _acItems.length - 1;
+      if (_acHighlightIndex >= _acItems.length) _acHighlightIndex = 0;
+      items[_acHighlightIndex].classList.add('highlighted');
+      items[_acHighlightIndex].scrollIntoView({ block: 'nearest' });
+    }
+
+    // Fetch server-side AI suggestions (debounced)
+    function fetchAiSuggestions(text) {
+      clearTimeout(_acDebounceTimer);
+      if (!text || text.length < 4) return;
+      _acDebounceTimer = setTimeout(async () => {
+        try {
+          const r = await fetch(`${SERVER_URL}/nlp/suggest`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
+          });
+          if (r.ok) {
+            const j = await r.json();
+            if (j.suggestions && j.suggestions.length > 0 && userInput.value.trim().length >= 4) {
+              const localItems = getLocalSuggestions(userInput.value.trim());
+              renderAcDropdown(localItems, j.suggestions);
+            }
+          }
+        } catch (e) { /* silently fail */ }
+      }, 600);
+    }
+
+    // ===== NLP Intent Detection =====
+    function runNlpAnalysis(text) {
+      clearTimeout(_nlpDebounceTimer);
+      if (!text || text.length < 3) {
+        hideNlpIndicator();
+        return;
+      }
+      _nlpDebounceTimer = setTimeout(async () => {
+        try {
+          const r = await fetch(`${SERVER_URL}/nlp/analyze`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
+          });
+          if (r.ok) {
+            _lastNlpResult = await r.json();
+            showNlpIndicator(_lastNlpResult, text);
+          }
+        } catch (e) { /* silently fail */ }
+      }, 800);
+    }
+
+    function showNlpIndicator(nlp, originalText) {
+      const isDark = document.body.classList.contains('dark-mode');
+      nlpIndicator.className = 'nlp-indicator active' + (isDark ? ' dark-mode' : '');
+      const intentLabel = (nlp.intent || 'unknown').replace(/_/g, ' ');
+      const confidence = Math.round((nlp.confidence || 0) * 100);
+      const sourceIcon = nlp.suggested_source === 'servicenow' ? '⚙️' : (nlp.suggested_source === 'documents' ? '📄' : '🌐');
+
+      // Build "Did you mean" suggestion if NLP corrected the query
+      let correctionHtml = '';
+      if (nlp.corrected && originalText && nlp.corrected.trim().toLowerCase() !== originalText.trim().toLowerCase()) {
+        correctionHtml = `<span>✏️ Did you mean: <span class="nlp-correction" data-correction="${escHtml(nlp.corrected)}">${escHtml(nlp.corrected)}</span>?</span>`;
+      }
+
+      nlpIndicator.innerHTML = `
+        <span class="nlp-badge intent-${nlp.intent || 'unclear'}">${intentLabel} (${confidence}%)</span>
+        <span>${sourceIcon} → <strong>${nlp.suggested_source || 'auto'}</strong></span>
+        ${nlp.entities?.ticket_number ? `<span>🎫 ${escHtml(nlp.entities.ticket_number)}</span>` : ''}
+        ${nlp.entities?.time_window ? `<span>📅 ${escHtml(nlp.entities.time_window)}</span>` : ''}
+        ${correctionHtml}
+        <span style="color:#9ca3af;font-size:0.65rem;">${escHtml(nlp.summary || '')}</span>
+      `;
+
+      // Attach click handler for correction suggestion
+      const corrLink = nlpIndicator.querySelector('.nlp-correction');
+      if (corrLink) {
+        corrLink.addEventListener('click', () => {
+          userInput.value = corrLink.dataset.correction;
+          updateStatus(`✏️ Applied correction: "${corrLink.dataset.correction}"`);
+          runNlpAnalysis(corrLink.dataset.correction);
+        });
+      }
+    }
+
+    function hideNlpIndicator() {
+      nlpIndicator.className = 'nlp-indicator';
+      nlpIndicator.innerHTML = '';
+      _lastNlpResult = null;
+    }
+
+    // Input event handlers for autocomplete
+    function handleInputForAC(e) {
+      const text = userInput.value.trim();
+
+      // Client-side autocorrect while typing (only on space/enter)
+      if (e && (e.data === ' ' || e.inputType === 'insertLineBreak')) {
+        const corrected = clientAutocorrect(userInput.value);
+        if (corrected !== userInput.value) {
+          userInput.value = corrected;
+        }
+      }
+
+      if (text.length < 2) {
+        closeAcDropdown();
+        hideNlpIndicator();
+        return;
+      }
+
+      // Show local suggestions immediately
+      const localItems = getLocalSuggestions(text);
+      if (localItems.length > 0) {
+        renderAcDropdown(localItems, []);
+      } else {
+        closeAcDropdown();
+      }
+
+      // Fetch AI suggestions in background (debounced)
+      fetchAiSuggestions(text);
+
+      // Run NLP analysis in background (debounced)
+      runNlpAnalysis(text);
+    }
+
+    function handleInputKeydown(e) {
+      const isAcOpen = acDropdown.classList.contains('open');
+
+      if (isAcOpen && e.key === 'ArrowDown') {
+        e.preventDefault();
+        navigateAc(1);
+      } else if (isAcOpen && e.key === 'ArrowUp') {
+        e.preventDefault();
+        navigateAc(-1);
+      } else if (isAcOpen && e.key === 'Tab') {
+        e.preventDefault();
+        if (_acHighlightIndex >= 0) selectAcItem(_acHighlightIndex);
+        else if (_acItems.length > 0) selectAcItem(0);
+      } else if (e.key === 'Escape') {
+        closeAcDropdown();
+      } else if (e.key === 'Enter') {
+        if (isAcOpen && _acHighlightIndex >= 0) {
+          e.preventDefault();
+          selectAcItem(_acHighlightIndex);
+        } else {
+          closeAcDropdown();
+          sendMessage();
+        }
+      }
+    }
+
+    // Click on autocomplete item
+    acDropdown.addEventListener('click', (e) => {
+      const item = e.target.closest('.ac-item');
+      if (item && item.dataset.index != null) {
+        selectAcItem(parseInt(item.dataset.index));
+      }
+    });
+
+    // Close autocomplete when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#input-container')) closeAcDropdown();
+    });
+
+    // ===== Searchable SN Group Dropdown =====
+    let _snGroups = [];          // full list fetched from server
+    let _snGroupValue = '';      // currently selected value
+    const snGroupToggle  = document.getElementById('sn-group-toggle');
+    const snGroupPanel   = document.getElementById('sn-group-panel');
+    const snGroupSearch  = document.getElementById('sn-group-search');
+    const snGroupList    = document.getElementById('sn-group-list');
+    const snGroupCount   = document.getElementById('sn-group-count');
+
+    // Getter used by sendMessage & runServiceNowStep
+    function getSnGroupValue() { return _snGroupValue; }
+
+    function renderGroupOptions(filter) {
+      const q = (filter || '').toLowerCase();
+      const matches = q ? _snGroups.filter(g => g.toLowerCase().includes(q)) : _snGroups;
+      snGroupList.innerHTML = '';
+      // "All Groups" option
+      const allDiv = document.createElement('div');
+      allDiv.className = 'sn-group-option' + (_snGroupValue === '' ? ' selected' : '');
+      allDiv.textContent = 'All Groups';
+      allDiv.dataset.value = '';
+      snGroupList.appendChild(allDiv);
+      // Group options
+      matches.forEach(g => {
+        const div = document.createElement('div');
+        div.className = 'sn-group-option' + (g === _snGroupValue ? ' selected' : '');
+        div.textContent = g;
+        div.dataset.value = g;
+        div.title = g;
+        snGroupList.appendChild(div);
+      });
+      snGroupCount.textContent = `${matches.length} of ${_snGroups.length} groups`;
+    }
+
+    function selectSnGroup(val) {
+      _snGroupValue = val;
+      snGroupToggle.innerHTML = (val || 'All Groups') + ' <span class="arrow">&#9662;</span>';
+      snGroupPanel.classList.remove('open');
+      snGroupSearch.value = '';
+    }
+
+    snGroupToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = snGroupPanel.classList.contains('open');
+      snGroupPanel.classList.toggle('open');
+      if (!isOpen) { snGroupSearch.value = ''; renderGroupOptions(''); snGroupSearch.focus(); }
+    });
+    snGroupSearch.addEventListener('input', () => renderGroupOptions(snGroupSearch.value));
+    snGroupSearch.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { snGroupPanel.classList.remove('open'); snGroupToggle.focus(); }
+      if (e.key === 'Enter') {
+        const first = snGroupList.querySelector('.sn-group-option');
+        if (first) selectSnGroup(first.dataset.value);
+      }
+    });
+    snGroupList.addEventListener('click', (e) => {
+      const opt = e.target.closest('.sn-group-option');
+      if (opt) selectSnGroup(opt.dataset.value);
+    });
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#sn-group-wrapper')) snGroupPanel.classList.remove('open');
+    });
+
+    // ===== Helpers =====
+    function updateStatus(msg, isError=false) {
+      statusBar.textContent = msg;
+      statusBar.style.backgroundColor = isError ? '#ef4444' : '#d1d5db';
+      statusBar.style.color = isError ? '#ffffff' : '#1f2937';
+      if (document.body.classList.contains('dark-mode')) {
+        statusBar.style.backgroundColor = isError ? '#b91c1c' : '#1a1a1a';
+        statusBar.style.color = 'white';
+      }
+    }
+
+    function createExportButtonsHTML(sender) {
+      const isUser = sender === 'user';
+      const btnStyles = {
+        pdf:  isUser ? 'background-color:#f87171;' : 'background-color:#ef4444;',
+        word: isUser ? 'background-color:#60a5fa;' : 'background-color:#3b82f6;',
+        xlsx: isUser ? 'background-color:#4ade80;' : 'background-color:#22c55e;',
+        ppt:  isUser ? 'background-color:#f97316;' : 'background-color:#ea580c;',
+        csv:  isUser ? 'background-color:#a3e635;' : 'background-color:#84cc16;',
+        txt:  isUser ? 'background-color:#9ca3af;' : 'background-color:#6b7280;',
+      };
+      const formats = ['pdf','word','xlsx','ppt','csv','txt'];
+      const analyzeBtn = `
+        <button class="inline-export-btn inline-analyze-btn"
+                data-action="analyze-inline"
+                title="Send this message content for RAG analysis">Analyze/RAG 🧠</button>
+      `;
+      const exportBtns = formats.map(fmt => `
+        <button class="inline-export-btn inline-export-${fmt}" style="${btnStyles[fmt]}"
+                data-action="export-inline" data-format="${fmt}"
+                title="Export message to ${fmt.toUpperCase()}">${fmt.toUpperCase()}</button>
+      `).join('');
+      return `<div class="inline-export-container">${analyzeBtn}${exportBtns}</div>`;
+    }
+
+    function renderMarkdown(text) {
+      if (!text) return '';
+      // Collapse 3+ consecutive newlines into 2 (single paragraph break)
+      text = text.replace(/\n{3,}/g, '\n\n');
+      try {
+        if (typeof marked !== 'undefined') {
+          let md = typeof marked.parse === 'function' ? marked.parse(text) : marked(text);
+          // Make all <a> open in new tab
+          md = md.replace(/<a /g, '<a target="_blank" rel="noopener" ');
+          return linkifyServiceNowRefs(md);
+        }
+      } catch(e) { console.warn('Markdown parse error:', e); }
+      return linkifyServiceNowRefs(text);
+    }
+
+    function linkifyServiceNowRefs(text) {
+      if (!text) return text;
+      const TABLE_MAP = {
+        INC: 'incident', REQ: 'sc_request', RITM: 'sc_req_item', SCTASK: 'sc_task',
+        KB: 'kb_knowledge', CHG: 'change_request', PRB: 'problem', TASK: 'task'
+      };
+      const TOKEN_RE = /\b(INC|KB|CHG|PRB|TASK|REQ|RITM|SCTASK)(\d+)\b/gi;
+      // Split on <a ...>...</a> so we only linkify tokens in plain-text segments
+      const parts = text.split(/(<a\b[^>]*>[\s\S]*?<\/a>)/gi);
+      return parts.map(part => {
+        // If this part is an existing anchor tag, leave it alone
+        if (/^<a\b/i.test(part)) return part;
+        return part.replace(TOKEN_RE, (m, prefix, num) => {
+          const p = prefix.toUpperCase();
+          const token = p + num;
+          if (SN_BASE_URL) {
+            const table = TABLE_MAP[p];
+            let url;
+            if (p === 'KB') url = `${SN_BASE_URL}/nav_to.do?uri=kb_view.do?sysparm_article=${token}`;
+            else url = `${SN_BASE_URL}/nav_to.do?uri=${table}.do?sysparm_query=number=${token}`;
+            return `<a href="${url}" target="_blank" rel="noopener" class="sn-record-link" title="Open ${token} in ServiceNow">${token} 🔗</a>`;
+          }
+          return `<span class="sn-record-link" title="ServiceNow record">${token} 🔗</span>`;
+        });
+      }).join('');
+    }
+
+    function getIconForFileType(nameOrExt) {
+      const ext = (nameOrExt.includes('.') ? nameOrExt.split('.').pop() : nameOrExt).toLowerCase();
+      switch (ext) { case 'pdf': return '📄'; case 'json': return '⚙️'; case 'xlsx': return '📊'; case 'ppt': case 'pptx': return '🖥️'; case 'doc': case 'docx': return '📝'; case 'txt': return '🗒️'; case 'csv': return '🗂️'; default: return '📁'; }
+    }
+    function canViewInBrowser(nameOrExt) {
+      const ext = (nameOrExt.includes('.') ? nameOrExt.split('.').pop() : nameOrExt).toLowerCase();
+      return ['pdf','txt'].includes(ext);
+    }
+    function mapFormatToExt(format) {
+      return ({ pdf:'pdf', word:'docx', xlsx:'xlsx', ppt:'pptx', csv:'csv', txt:'txt' })[format] || format;
+    }
+
+    // NEW: safe clip for long text fields (SN descriptions/notes)
+    function clip(text, maxLen = 100) {
+      if (!text) return '';
+      const t = String(text);
+      return t.length > maxLen ? t.slice(0, maxLen).trim() + '…' : t;
+    }
+
+    // ===== Per-source grid builders =====
+    function buildWebAnswerHtml(text, query, sourceRefsHtml) {
+      // Strip the "## Web Answer" and "**Query:**..." header the server prepends
+      let body = text;
+      body = body.replace(/^##\s*🌐\s*Web Answer\s*\n*/i, '');
+      body = body.replace(/^\*\*Query:\*\*\s*.*\n*/im, '');
+      const queryChip = `<div class="web-answer-query"><strong>Query:</strong> <span>${escHtml(query)}</span></div>`;
+      return `<div class="source-section web-section">` +
+        `<div class="source-section-header"><span class="source-icon">🌐</span><span class="source-label web">Web Search Results</span></div>` +
+        `<div class="source-section-body"><div class="web-answer-content">${queryChip}<div class="web-answer-body">${renderMarkdown(body)}</div></div></div>` +
+        `${sourceRefsHtml}</div>`;
+    }
+
+    function buildDocAnswerHtml(text, docSources, sourceRefsHtml) {
+      // Document source cards
+      let cardsHtml = '';
+      if (Array.isArray(docSources) && docSources.length) {
+        const cards = docSources.map(src => {
+          const name = src.source || 'Document';
+          const icon = getIconForFileType(name);
+          const page = src.page ? `<span class="doc-card-page">p. ${src.page}</span>` : '';
+          const url = `${SERVER_URL}/serve-document?file=${encodeURIComponent(name)}`;
+          return `<div class="doc-card">` +
+            `<div class="doc-card-header"><span class="doc-card-icon">${icon}</span>` +
+            `<a href="${url}" target="_blank" rel="noopener" class="doc-card-name" title="${escHtml(name)}">${escHtml(name)}</a>${page}</div>` +
+            `</div>`;
+        });
+        cardsHtml = `<div class="doc-grid">${cards.join('')}</div>`;
+      }
+      return `<div class="source-section doc-section">` +
+        `<div class="source-section-header"><span class="source-icon">📄</span><span class="source-label doc">Document Search Results</span>` +
+        `<span style="margin-left:auto;font-size:0.72rem;font-weight:500;color:#6b7280;">${docSources.length} source(s)</span></div>` +
+        `<div class="source-section-body"><div class="doc-answer-body">${renderMarkdown(text)}</div>${cardsHtml}</div>` +
+        `${sourceRefsHtml}</div>`;
+    }
+
+    function buildSnAnswerHtml(text, sources, sourceRefsHtml) {
+      return `<div class="source-section sn-section">` +
+        `<div class="source-section-header"><span class="source-icon">⚙️</span><span class="source-label sn">ServiceNow Results</span>` +
+        `<span style="margin-left:auto;font-size:0.72rem;font-weight:500;color:#6b7280;">${sources.length} record(s)</span></div>` +
+        `<div class="source-section-body">${renderMarkdown(text)}</div>` +
+        `${sourceRefsHtml}</div>`;
+    }
+
+    function escHtml(str) {
+      return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // NEW: Render compact ServiceNow chips inside metadata (no layout change)
+    function renderSNChips(metaContainer, source) {
+      if (!source || typeof source !== 'object') return;
+      const isSN = !!(source.number || source.sys_id || source._table || source.url);
+      if (!isSN) return;
+
+      const addChip = (label, value, title = '') => {
+        if (value === undefined || value === null || value === '') return;
+        const span = document.createElement('span');
+        span.style.display = 'inline-flex';
+        span.style.alignItems = 'center';
+        span.style.gap = '4px';
+        span.style.padding = '2px 6px';
+        span.style.border = '1px solid rgba(0,0,0,0.12)';
+        span.style.borderRadius = '9999px';
+        span.style.fontStyle = 'normal';
+        span.style.backgroundColor = 'rgba(99,102,241,0.06)';
+        span.style.color = 'inherit';
+        span.title = title || `${label}: ${String(value)}`;
+
+        const strong = document.createElement('strong');
+        strong.textContent = `${label}:`;
+        strong.style.fontWeight = 700;
+        strong.style.marginRight = '2px';
+
+        const valEl = document.createElement('span');
+        valEl.textContent = String(value);
+
+        span.appendChild(strong);
+        span.appendChild(valEl);
+        metaContainer.appendChild(span);
+      };
+
+      addChip('Record', source.number || source.sys_id || '');
+      if (source._table) addChip('Table', source._table);
+
+      addChip('State', source.state);
+      addChip('Priority', source.priority);
+
+      const groupVal = source.assignment_group && (source.assignment_group.display_value || source.assignment_group.name) || source.assignment_group;
+      const assigneeVal = source.assigned_to && (source.assigned_to.display_value || source.assigned_to.name) || source.assigned_to;
+      addChip('Group', groupVal);
+      addChip('Assignee', assigneeVal);
+
+      addChip('Category', source.category);
+      addChip('Subcat', source.subcategory);
+
+      const requestedForVal = source.requested_for && (source.requested_for.display_value || source.requested_for.name) || source.requested_for;
+      addChip('Requested For', requestedForVal);
+      addChip('Request', source.request);
+
+      if (source.description) addChip('Desc', clip(source.description, 100), source.description);
+      if (source.close_notes) addChip('Close Notes', clip(source.close_notes, 100), source.close_notes);
+      if (source.work_notes) addChip('Work Notes', clip(source.work_notes, 100), source.work_notes);
+      if (source.comments) addChip('Comments', clip(source.comments, 100), source.comments);
+    }
+
+    // NEW: server-side translation call
+    async function translateMessageOnServer(originalText, target) {
+      const resp = await fetch(`${SERVER_URL}/translate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: originalText, target })
+      });
+      if (!resp.ok) {
+        const j = await resp.json().catch(()=>({error: resp.statusText}));
+        throw new Error(j.error || `HTTP ${resp.status}`);
+      }
+      return resp.json(); // { translated, target, rtl }
+    }
+
+    // ===== Chat UI =====
+    async function addMessage(text, sender, sources=[], isStatus=false, mode=null) {
+      const el = document.createElement('div');
+      el.classList.add('message');
+      if (document.body.classList.contains('dark-mode')) el.classList.add('dark-mode');
+
+      if (isStatus) {
+        el.classList.add('status-message');
+        if (sender === 'error') el.classList.add('error-message');
+        el.textContent = text;
+      } else {
+        el.classList.add(`${sender}-message`);
+
+        const del = document.createElement('button');
+        del.classList.add('message-delete-btn');
+        del.dataset.action = 'delete-message';
+        del.title = 'Delete this message from view';
+        del.textContent = 'x';
+        el.appendChild(del);
+
+        if (sender === 'user') {
+          const p = document.createElement('p');
+          p.classList.add('message-text');
+          p.textContent = text;
+          el.appendChild(p);
+        } else {
+          el.dataset.originalText = text;
+          const t = document.createElement('div');
+          t.classList.add('message-text');
+          // If text is already wrapped in a source-section, pass through as-is
+          if (text.startsWith('<div class="source-section')) {
+            t.innerHTML = text;
+          } else {
+            t.innerHTML = renderMarkdown(text);
+          }
+          el.appendChild(t);
+
+          const controls = document.createElement('div');
+          controls.classList.add('translation-controls');
+          let ctrl = `<span class="translate-label">Translate:</span>`;
+          const langs = { es:'🇪🇸', fr:'🇫🇷', de:'🇩🇪', ja:'🇯🇵', ko:'🇰🇷', ru:'🇷🇺', zh:'🇨🇳', ar:'🇸🇦', hi:'🇮🇳', tl:'🇵🇭' };
+          Object.entries(langs).forEach(([lang,flag]) => { ctrl += `<button class="translate-btn" data-lang="${lang}" title="Translate to ${lang.toUpperCase()}">${flag}</button>`; });
+          ctrl += `<button class="translate-reset-btn" title="Reset to Original">Reset</button><span class="translated-badge" data-translated-badge style="display:none;"></span>`;
+          controls.innerHTML = ctrl;
+          el.appendChild(controls);
+
+          if (Array.isArray(sources) && sources.length > 0 && mode !== 'servicenow') {
+            const meta = document.createElement('div');
+            meta.classList.add('metadata-container');
+            const sTitle = document.createElement('span');
+            sTitle.textContent = `Source(s) (${mode ? mode.toUpperCase() : 'UNKNOWN'}):`;
+            meta.appendChild(sTitle);
+            sources.slice(0, MAX_SOURCES).forEach(source => {
+              const span = document.createElement('span');
+              span.classList.add('metadata-source');
+              const a = document.createElement('a');
+              // Build URL: for documents use serve-document endpoint, otherwise use source.url
+              if (mode === 'documents' && source.source) {
+                a.href = `${SERVER_URL}/serve-document?file=${encodeURIComponent(source.source)}`;
+              } else {
+                a.href = source.url || '#';
+              }
+              a.target = '_blank';
+              a.title = source.title || source.number || source.short_description || source.source || 'Source';
+              a.textContent = source.source && source.page ? `${source.source} (p. ${source.page})`
+                          : (source.title || source.number || source.short_description || 'Source');
+              span.appendChild(a);
+              meta.appendChild(span);
+
+              // NEW: Append compact SN chips when available
+              try { renderSNChips(meta, source); } catch (e) { /* no-op */ }
+            });
+            el.appendChild(meta);
+          }
+        }
+
+        // Inline buttons (Analyze/RAG + exports)
+        el.innerHTML += createExportButtonsHTML(sender);
+      }
+      chatBox.prepend(el);
+    }
+
+    function addDocumentThumbnail(fileName) {
+      const icon = getIconForFileType(fileName);
+      const downloadUrl = `${SERVER_URL}/serve-document?file=${encodeURIComponent(fileName)}`;
+      const isDark = document.body.classList.contains('dark-mode');
+      const isView = canViewInBrowser(fileName);
+
+      const card = document.createElement('div');
+      card.classList.add('document-card','mt-4'); if (isDark) card.classList.add('dark-mode');
+
+      const iconDiv = document.createElement('div'); iconDiv.classList.add('document-card-img'); iconDiv.innerHTML = icon;
+      const title = document.createElement('div'); title.classList.add('document-card-title','text-sm'); title.textContent = fileName; if (isDark) title.classList.add('dark-mode');
+
+      const actions = document.createElement('div'); actions.classList.add('doc-actions-container');
+      if (isView) { const v = document.createElement('a'); v.href = downloadUrl; v.target="_blank"; v.classList.add('doc-action-btn','btn-view'); v.textContent="View 👁️"; actions.appendChild(v); }
+      const dl = document.createElement('a'); dl.href=downloadUrl; dl.download=fileName; dl.classList.add('doc-action-btn','btn-view'); dl.textContent="Download ⬇️"; actions.appendChild(dl);
+      const del = document.createElement('button'); del.classList.add('doc-action-btn','btn-delete'); del.dataset.action='delete-rag-doc'; del.dataset.filename=fileName; del.textContent="Delete ❌"; actions.appendChild(del);
+
+      card.appendChild(iconDiv); card.appendChild(title); card.appendChild(actions);
+      chatBox.prepend(card);
+    }
+
+    // ===== Chat: 3-step flow =====
+    function saveToHistory(query, responses) {
+      // responses = [{ mode, text, sources }]
+      const combined = responses.map(r => `[${r.mode}] ${r.text}`).join('\n\n');
+      const allSources = responses.flatMap(r => r.sources || []);
+      const bestMode = responses.find(r => r.text && !/no (direct |strong |relevant )?answer|not found|no data/i.test(r.text))?.mode || responses[0]?.mode || 'web';
+      const entry = { query, response: combined, sources: allSources.slice(0, MAX_SOURCES), mode: bestMode, timestamp: new Date().toLocaleString() };
+      conversationHistory.unshift(entry);
+      if (conversationHistory.length > MAX_HISTORY) conversationHistory = conversationHistory.slice(0, MAX_HISTORY);
+      localStorage.setItem('conversationHistory', JSON.stringify(conversationHistory));
+      renderHistory();
+    }
+
+    async function sendMessage() {
+      const query = userInput.value.trim(); if (!query) return;
+      lastUserQuery = query;
+      await addMessage(query,'user'); userInput.value='';
+
+      sendButton.disabled = true; sendButton.innerHTML = `<div class="loader"></div>`;
+      const historyResults = []; // collect results for history
+
+      // 1) Web
+      updateStatus('🌐 Searching the Web... (Step 1 of 3)');
+      try {
+        const r = await fetch(`${SERVER_URL}/chat`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query, source:'web'}) });
+        if (r.ok) {
+          const j = await r.json();
+          const text = j.response?.trim()?.length ? j.response : 'No direct answer found on the Web.';
+          const webSources = j.sources || [];
+          const webSourcesHtml = buildSourceRefsHtml(webSources, 'web');
+          const webHtml = buildWebAnswerHtml(text, query, webSourcesHtml);
+          await addMessage(webHtml, 'bot', webSources, false, 'web');
+          historyResults.push({ mode: 'web', text, sources: webSources });
+        } else {
+          const j = await r.json().catch(()=>({error:r.statusText}));
+          await addMessage(`Web Search Error (HTTP ${r.status}): ${j.error ?? 'Check server logs.'}`,'error',[],true);
+        }
+      } catch { await addMessage(`❌ Web Search Network Error. Check connection to ${SERVER_URL}`,'error',[],true); }
+
+      // 2) Documents
+      updateStatus('📄 Searching Documents... (Step 2 of 3)');
+      try {
+        const r = await fetch(`${SERVER_URL}/chat`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({query, source:'documents'}) });
+        if (r.ok) {
+          const j = await r.json();
+          const text = j.response?.trim()?.length ? j.response : 'No answer found in the uploaded documents.';
+          const docSources = j.sources || [];
+          if (/No strong matches in uploaded documents|Not found in documents/i.test(text)) {
+            await addMessage(`ℹ️ ${text}`,'bot', docSources, true, 'documents');
+          } else {
+            const docSourcesHtml = buildSourceRefsHtml(docSources, 'documents');
+            const docHtml = buildDocAnswerHtml(text, docSources, docSourcesHtml);
+            await addMessage(docHtml, 'bot', docSources, false, 'documents');
+          }
+          historyResults.push({ mode: 'documents', text, sources: docSources });
+        } else {
+          const j = await r.json().catch(()=>({error:r.statusText}));
+          await addMessage(`Document Search Error (HTTP ${r.status}): ${j.error ?? 'Check server logs.'}`,'error',[],true);
+        }
+      } catch { await addMessage(`❌ Document Search Network Error. Check connection to ${SERVER_URL}`,'error',[],true); }
+
+      // 3) ServiceNow
+      let snQuery = query; const win = snWindowSelect.value;
+      const snGroup = getSnGroupValue();
+      updateStatus(`⚙️ Searching ServiceNow... (Step 3 of 3${win && win!=='none' ? `, last ${win} days` : ''}${snGroup ? `, group: ${snGroup}` : ''})`);
+      if (win && win !== 'none') snQuery = `${query} last ${win} days`;
+      const snResult = await runServiceNowStep(snQuery, snGroup);
+      if (snResult) historyResults.push(snResult);
+
+      // Save to conversation history
+      if (historyResults.length > 0) saveToHistory(query, historyResults);
+
+      sendButton.disabled = false;
+      sendButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>`;
+      updateStatus('Ready');
+    }
+
+    async function runServiceNowStep(q, group) {
+      try {
+        const body = { query: q, source: 'servicenow' };
+        if (group) body.snGroup = group;
+        const r = await fetch(`${SERVER_URL}/chat`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        if (!r.ok) {
+          const j = await r.json().catch(()=>({error:r.statusText}));
+          await addMessage(`ServiceNow Search Error (HTTP ${r.status}): ${j.error ?? 'Check server logs.'}`,'error',[],true);
+          return null;
+        }
+        const j = await r.json();
+        const text = j.response?.trim()?.length ? j.response.trim() : 'No relevant data found in ServiceNow.';
+        const sources = Array.isArray(j.sources) ? j.sources.slice(0, MAX_SOURCES) : [];
+        const snSourcesHtml = buildSourceRefsHtml(sources, 'servicenow');
+        const snHtml = buildSnAnswerHtml(text, sources, snSourcesHtml);
+        await addMessage(snHtml, 'bot', sources, false, 'servicenow');
+        return { mode: 'servicenow', text, sources };
+      } catch { await addMessage(`❌ ServiceNow Search Network Error. Check connection to ${SERVER_URL}`,'error',[],true); return null; }
+    }
+
+    // ===== Build source reference HTML =====
+    function buildSourceRefsHtml(sources, mode) {
+      if (!Array.isArray(sources) || sources.length === 0) return '';
+      let chips = '';
+      sources.slice(0, MAX_SOURCES).forEach(src => {
+        if (mode === 'web') {
+          const title = src.title || src.source || 'Web Source';
+          const url = src.url || '#';
+          chips += `<a href="${url}" target="_blank" rel="noopener" class="source-ref-chip" title="${title}">🔗 ${clip(title, 50)}</a>`;
+        } else if (mode === 'documents') {
+          const name = src.source || src.title || 'Document';
+          const page = src.page ? ` (p. ${src.page})` : '';
+          const docUrl = `${SERVER_URL}/serve-document?file=${encodeURIComponent(name)}`;
+          chips += `<a href="${docUrl}" target="_blank" rel="noopener" class="source-ref-chip" title="${name}${page}">📄 ${clip(name, 40)}${page}</a>`;
+        } else if (mode === 'servicenow') {
+          const num = src.number || src.sys_id || 'Record';
+          const desc = src.short_description || src.description || '';
+          const url = src.url || '#';
+          const state = src.state ? ` &bull; ${src.state}` : '';
+          const priority = src.priority ? ` &bull; P${src.priority}` : '';
+          if (url && url !== '#') {
+            chips += `<a href="${url}" target="_blank" rel="noopener" class="source-ref-chip" title="${num}: ${clip(desc,80)}${state}${priority}">🔖 ${num}${state}</a>`;
+          } else {
+            chips += `<span class="source-ref-chip" title="${num}: ${clip(desc,80)}">🔖 ${num}${state}</span>`;
+          }
+        }
+      });
+      if (!chips) return '';
+      return `<div class="source-refs"><details><summary>📎 ${sources.length} source(s) — click to expand</summary><div class="source-ref-list">${chips}</div></details></div>`;
+    }
+
+    // ===== Inline export & analyze =====
+    function buildSingleMessageExportData(messageElement) {
+      const isUser = messageElement.classList.contains('user-message');
+      const sender = isUser ? 'user' : 'bot';
+      const now = new Date().toLocaleString();
+      let text = '';
+      if (isUser) text = messageElement.querySelector('p')?.textContent || '';
+      else text = messageElement.dataset.originalText || messageElement.querySelector('.message-text')?.textContent || '';
+
+      let sources = null;
+      const meta = messageElement.querySelector('.metadata-container');
+      if (meta) {
+        const links = Array.from(meta.querySelectorAll('.metadata-source a'));
+        sources = links.slice(0, MAX_SOURCES).map(a => {
+          const t = a.textContent || '';
+          const m = t.match(/\(p\. (\d+)\)$/);
+          const page = m ? m[1] : 'N/A';
+          return t.includes('(p.') ? {source: t.replace(/\s\(p\. \d+\)$/,''), page} : {title: t, url: a.href};
+        });
+      }
+      return [{ sender, text, sources, mode: isUser ? 'user_single' : 'bot_single', timestamp: now }];
+    }
+
+    async function exportSingleMessage(messageElement, format) {
+      try {
+        const allowed = ['pdf','word','xlsx','ppt','csv','txt'];
+        if (!allowed.includes(format)) { updateStatus(`Unsupported format: ${format}`, true); return; }
+
+        const exportData = buildSingleMessageExportData(messageElement);
+        const seed = (exportData[0]?.text || 'message').toLowerCase().replace(/[^a-z0-9\s-_]/g,'').slice(0,24).trim().replace(/\s+/g,'_') || 'message';
+        const suggested = `${seed}_${Date.now()}`;
+        let nameNoExt = prompt('Enter filename (without extension):', suggested);
+        if (nameNoExt === null || nameNoExt.trim() === '') { updateStatus('Inline export cancelled.', true); return; }
+        nameNoExt = nameNoExt.trim().replace(/[^a-z0-9\s-_]/gi,'_');
+
+        updateStatus(`Preparing inline ${format.toUpperCase()} export...`);
+        const resp = await fetch(`${SERVER_URL}/export-chat/${format}`, {
+          method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ chatData: exportData })
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(()=>({error:resp.statusText}));
+          await addMessage(`❌ Inline ${format.toUpperCase()} export failed. Server Error: ${err.error ?? resp.statusText}`,'error',[],true);
+          updateStatus('Inline export failed.', true);
+          return;
+        }
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+
+        const finalExt = mapFormatToExt(format);
+        const finalName = `${nameNoExt}.${finalExt}`;
+        const isDark = document.body.classList.contains('dark-mode');
+        const isView = canViewInBrowser(finalExt);
+        const icon = getIconForFileType(finalExt);
+
+        const card = document.createElement('div');
+        card.classList.add('document-card','mt-4'); if (isDark) card.classList.add('dark-mode');
+        card.dataset.export='true'; card.dataset.fileName=finalName; card.dataset.blobUrl=url; card.dataset.format=finalExt;
+
+        const iconDiv = document.createElement('div'); iconDiv.classList.add('document-card-img'); iconDiv.innerHTML = icon;
+        const title = document.createElement('div'); title.classList.add('document-card-title','text-sm'); title.textContent = `Inline Export: ${finalName}`;
+        if (isDark) title.classList.add('dark-mode');
+
+        const actions = document.createElement('div'); actions.classList.add('doc-actions-container');
+        if (isView) { const v = document.createElement('a'); v.href=url; v.target="_blank"; v.classList.add('doc-action-btn','btn-view'); v.textContent="View 👁️"; actions.appendChild(v); }
+        const dl = document.createElement('a'); dl.href=url; dl.download=finalName; dl.classList.add('doc-action-btn','btn-view'); dl.textContent="Download ⬇️"; actions.appendChild(dl);
+        const analyzeBtn = document.createElement('button'); analyzeBtn.classList.add('doc-action-btn','btn-analyze'); analyzeBtn.dataset.action='upload-export'; analyzeBtn.dataset.blobUrl=url; analyzeBtn.dataset.filename=finalName; analyzeBtn.dataset.format=finalExt; analyzeBtn.textContent='Analyze/RAG 🧠'; actions.appendChild(analyzeBtn);
+        const delBtn = document.createElement('button'); delBtn.classList.add('doc-action-btn','btn-delete'); delBtn.dataset.action='delete-card'; delBtn.dataset.filename=finalName; delBtn.textContent='Delete ❌'; actions.appendChild(delBtn);
+
+        card.appendChild(iconDiv); card.appendChild(title); card.appendChild(actions);
+        chatBox.prepend(card);
+
+        updateStatus(`Inline export ready: ${finalName}`);
+      } catch (e) {
+        await addMessage(`❌ Inline export error: ${e?.message ?? e}`,'error',[],true);
+        updateStatus('Inline export failed.', true);
+      }
+    }
+
+    async function analyzeSingleMessageForRAG(messageElement) {
+      try {
+        const isUser = messageElement.classList.contains('user-message');
+        const sender = isUser ? 'user' : 'bot';
+        let text = '';
+        if (isUser) text = messageElement.querySelector('p')?.textContent || '';
+        else text = messageElement.dataset.originalText || messageElement.querySelector('.message-text')?.textContent || '';
+        const trimmed = (text||'').trim(); if (!trimmed) { updateStatus('Nothing to analyze for RAG.', true); return; }
+
+        const slug = trimmed.toLowerCase().replace(/[^a-z0-9\s-_]/g,'').slice(0,32).trim().replace(/\s+/g,'_') || 'message';
+        const fileName = `${sender}_${slug}_${Date.now()}.txt`;
+        const blob = new Blob([trimmed], {type:'text/plain;charset=utf-8'});
+        const file = new File([blob], fileName, {type:'text/plain'});
+
+        const fd = new FormData(); fd.append('document', file);
+        updateStatus(`Uploading "${fileName}" for RAG analysis...`);
+        const r = await fetch(`${SERVER_URL}/upload`, { method:'POST', body: fd });
+        const j = await r.json().catch(()=>({error:r.statusText}));
+        if (!r.ok) { await addMessage(`❌ Analyze/RAG upload failed. Server Error: ${j.error ?? r.statusText}`,'error',[],true); updateStatus('Analyze/RAG upload failed.', true); return; }
+
+        addDocumentThumbnail(fileName);
+        await addMessage(`✅ Message uploaded as **${fileName}** and indexed for RAG.`,'bot',[],true);
+        updateStatus('Analyze/RAG upload successful.');
+      } catch (e) {
+        await addMessage(`❌ Analyze/RAG error: ${e?.message ?? e}`,'error',[],true);
+        updateStatus('Analyze/RAG failed.', true);
+      }
+    }
+
+    async function uploadExportedFileForRAG(blob, fileName, card) {
+      if (!confirm(`Upload exported file for RAG analysis? (${fileName})`)) return;
+      const btn = card.querySelector('[data-action="upload-export"]'); if (btn) btn.disabled = true;
+      updateStatus(`Re-uploading ${fileName} for RAG analysis...`);
+      const fd = new FormData(); const file = new File([blob], fileName, {type: blob.type}); fd.append('document', file);
+      try {
+        const r = await fetch(`${SERVER_URL}/upload`, { method:'POST', body: fd });
+        const j = await r.json().catch(()=>({error:r.statusText}));
+        if (!r.ok) { await addMessage(`❌ Failed to re-upload exported document. Server Error: ${j.error ?? r.statusText}.`,'error',[],true); updateStatus('RAG re-upload failed.', true); return; }
+        card.classList.add('border-4','border-action-green');
+        card.querySelector('.document-card-title').textContent += ' (RAG Indexed)';
+        const del = card.querySelector('[data-action="delete-card"]'); if (del) { del.dataset.action='delete-rag-doc'; del.dataset.fileName=fileName; }
+        await addMessage(`✅ Exported file **${fileName}** indexed for RAG and saved on server.`,'bot',[],true);
+        updateStatus(`RAG re-upload successful. ${fileName} ready for analysis.`);
+      } catch {
+        await addMessage(`❌ Network error while re-uploading export.`,'error',[],true);
+        updateStatus('RAG re-upload failed: Connection error.', true);
+      } finally { if (btn) btn.remove(); }
+    }
+
+    // NEW: Upload manual text card content for RAG
+    async function uploadManualRAG(content, fileName, card) {
+      try {
+        const blob = new Blob([content], {type:'text/plain;charset=utf-8'});
+        const file = new File([blob], fileName, {type:'text/plain'});
+        const fd = new FormData(); fd.append('document', file);
+
+        updateStatus(`Uploading manual text "${fileName}" for RAG...`);
+        const r = await fetch(`${SERVER_URL}/upload`, { method:'POST', body: fd });
+        const j = await r.json().catch(()=>({error:r.statusText}));
+        if (!r.ok) { await addMessage(`❌ Upload failed for ${fileName}. Error: ${j.error ?? r.statusText}.`,'error',[],true); updateStatus('Manual RAG upload failed.', true); return; }
+
+        if (card) {
+          card.classList.add('border-4','border-action-green');
+          const titleEl = card.querySelector('.document-card-title');
+          if (titleEl && !titleEl.textContent.includes('(RAG Indexed)')) titleEl.textContent += ' (RAG Indexed)';
+          const del = card.querySelector('[data-action="delete-card"]');
+          if (del) { del.dataset.action='delete-rag-doc'; del.dataset.fileName=fileName; }
+        }
+        addDocumentThumbnail(fileName);
+        await addMessage(`✅ Manual text **${fileName}** indexed for RAG and saved on server.`,'bot',[],true);
+        updateStatus('Manual RAG upload successful.');
+      } catch (e) {
+        await addMessage(`❌ Manual RAG upload error: ${e?.message ?? e}`,'error',[],true);
+        updateStatus('Manual RAG upload failed.', true);
+      }
+    }
+
+    // ===== Full chat export / file ops =====
+    function getChatData() {
+      const els = Array.from(chatBox.querySelectorAll('.user-message,.bot-message'));
+      const out = []; const now = new Date().toLocaleString();
+      for (let i=els.length-1;i>=0;i--){
+        const m = els[i];
+        if (m.classList.contains('status-message') || m.classList.contains('document-card')) continue;
+        const sender = m.classList.contains('user-message') ? 'user' : 'bot';
+        const text = sender==='user' ? (m.querySelector('p')?.textContent||'') : (m.querySelector('.message-text')?.textContent||'');
+        let sources = null;
+        const meta = m.querySelector('.metadata-container');
+        if (sender==='bot' && meta) {
+          const links = Array.from(meta.querySelectorAll('.metadata-source a'));
+          sources = links.slice(0, MAX_SOURCES).map(a => {
+            const t = a.textContent || '';
+            const mm = t.match(/\(p\. (\d+)\)$/);
+            const page = mm ? mm[1] : 'N/A';
+            return t.includes('(p.') ? {source: t.replace(/\s\(p\. \d+\)$/,''), page} : {title: t, url: a.href};
+          });
+        }
+        out.push({ sender, text, sources, mode:'current_chat_view', timestamp: now });
+      }
+      return out.reverse();
+    }
+
+    async function exportChat(format) {
+      const data = getChatData();
+      if (data.length===0) { await addMessage('❌ Cannot export empty chat.','error',[],true); updateStatus('Export failed: Empty chat.', true); return; }
+      const slug = lastUserQuery ? lastUserQuery.trim().toLowerCase().replace(/[^a-z0-9\s]/g,'').slice(0,20).trim().replace(/\s+/g,'_') : 'chat_export';
+      const suggested = `${slug || 'chat_export'}_${Date.now()}`;
+      let nameNoExt = prompt('Enter filename (without extension):', suggested);
+      if (nameNoExt===null || nameNoExt.trim()===''){ updateStatus('Export cancelled.', true); return; }
+      nameNoExt = nameNoExt.trim().replace(/[^a-z0-9\s-_]/gi,'_');
+
+      updateStatus(`Preparing full chat export to ${format.toUpperCase()}...`);
+      const r = await fetch(`${SERVER_URL}/export-chat/${format}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ chatData: data }) });
+      if (!r.ok) {
+        const j = await r.json().catch(()=>({error:r.statusText}));
+        await addMessage(`❌ Full chat ${format.toUpperCase()} failed. Server Error: ${j.error ?? r.statusText}`,'error',[],true);
+        updateStatus('Export failed.', true); return;
+      }
+      const blob = await r.blob(); const url = URL.createObjectURL(blob);
+      const finalExt = mapFormatToExt(format); const fileName = `${nameNoExt}.${finalExt}`;
+
+      const isDark = document.body.classList.contains('dark-mode');
+      const isView = canViewInBrowser(finalExt);
+      const icon = getIconForFileType(finalExt);
+
+      const card = document.createElement('div');
+      card.classList.add('document-card','mt-4'); if (isDark) card.classList.add('dark-mode');
+      card.dataset.export='true'; card.dataset.fileName=fileName; card.dataset.blobUrl=url; card.dataset.format=finalExt;
+
+      const iconDiv = document.createElement('div'); iconDiv.classList.add('document-card-img'); iconDiv.innerHTML = icon;
+      const actions = document.createElement('div'); actions.classList.add('doc-actions-container');
+
+      if (isView) { const v = document.createElement('a'); v.href=url; v.target="_blank"; v.classList.add('doc-action-btn','btn-view'); v.textContent="View 👁️"; actions.appendChild(v); }
+      const dl = document.createElement('a'); dl.href=url; dl.download=fileName; dl.classList.add('doc-action-btn','btn-view'); dl.textContent="Download ⬇️"; actions.appendChild(dl);
+      const analyzeBtn = document.createElement('button'); analyzeBtn.classList.add('doc-action-btn','btn-analyze'); analyzeBtn.dataset.action='upload-export'; analyzeBtn.dataset.blobUrl=url; analyzeBtn.dataset.filename=fileName; analyzeBtn.dataset.format=finalExt; analyzeBtn.textContent='Analyze/RAG 🧠'; actions.appendChild(analyzeBtn);
+      const delBtn = document.createElement('button'); delBtn.classList.add('doc-action-btn','btn-delete'); delBtn.dataset.action='delete-card'; delBtn.dataset.filename=fileName; delBtn.textContent='Delete ❌'; actions.appendChild(delBtn);
+
+      const title = document.createElement('div'); title.classList.add('document-card-title','text-sm'); title.textContent = `Full Chat Export: ${fileName}`;
+      if (isDark) title.classList.add('dark-mode');
+
+      card.appendChild(iconDiv); card.appendChild(title); card.appendChild(actions);
+      chatBox.prepend(card);
+
+      updateStatus(`Full chat export ready: ${fileName}`);
+    }
+
+    function renderHistory() {
+      historyContent.innerHTML = '';
+      if (conversationHistory.length===0) { historyContent.innerHTML = '<p class="text-center text-gray-500 pt-8">No conversation history yet. Start chatting!</p>'; return; }
+      conversationHistory.forEach((item, idx) => {
+        const it = document.createElement('div'); it.classList.add('history-item'); if (document.body.classList.contains('dark-mode')) it.classList.add('dark-mode'); it.dataset.index=idx;
+        const q = document.createElement('div'); q.classList.add('history-item-query'); q.textContent = `${item.mode==='documents'?'📄':(item.mode==='servicenow'?'⚙️':'🌐')} ${item.query}`;
+        const r = document.createElement('div'); r.classList.add('history-item-response'); r.textContent = (item.response||'').substring(0,100)+'...';
+        const ts = document.createElement('span'); ts.classList.add('text-xs','text-gray-400','block','mt-1'); ts.textContent = item.timestamp;
+        it.appendChild(q); it.appendChild(r); it.appendChild(ts);
+        it.addEventListener('click', ()=>{ chatBox.innerHTML=''; addMessage(item.query,'user',[],false,item.mode); addMessage(item.response,'bot',item.sources,false,item.mode); updateStatus('Loaded conversation from history.'); });
+        historyContent.appendChild(it);
+      });
+    }
+
+    function populateLanguageDropdown() {
+      const map = { en:'English 🇬🇧', es:'Español 🇪🇸', fr:'Français 🇫🇷', de:'Deutsch 🇩🇪', ja:'日本語 🇯🇵', ko:'한국어 🇰🇷', ru:'Русский 🇷🇺', zh:'中文 🇨🇳', ar:'العربية 🇸🇦', hi:'हिंदी 🇮🇳', tl:'Filipino 🇵🇭' };
+      languageSelect.innerHTML = ''; Object.entries(map).forEach(([v,l])=>{ const o=document.createElement('option'); o.value=v; o.textContent=l; if(v==='en') o.selected=true; languageSelect.appendChild(o); });
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+      const isDark = document.body.classList.contains('dark-mode');
+      localStorage.setItem('darkMode', isDark ? 'enabled' : 'disabled');
+      document.querySelectorAll('.chat-container,#sidebar,#sidebar-header,.input-area,.controls,#status-bar,.deltek-header,#user-input,#chat-box,#history-content,.document-card,#modal-content,#ac-dropdown').forEach(el=>el.classList.toggle('dark-mode', isDark));
+      document.querySelectorAll('.document-card-title').forEach(el=>el.classList.toggle('dark-mode', isDark));
+      if (nlpIndicator.classList.contains('active')) nlpIndicator.classList.toggle('dark-mode', isDark);
+      document.querySelectorAll('.message').forEach(el=>{ el.classList.toggle('dark-mode', isDark); if (el.querySelector('.metadata-container')) el.querySelector('.metadata-container').classList.toggle('dark-mode', isDark); });
+      updateStatus('Dark mode toggled.');
+      renderHistory();
+    }
+
+    function handleFontSizeChange(e){ document.body.style.fontSize = `${e.target.value}px`; updateStatus(`Font size set to ${e.target.value}px.`); }
+
+    async function handleFileUpload(files) {
+      if (!files || files.length===0) return;
+      await addMessage(`🚀 Uploading and processing **${files.length}** document(s)...`,'bot',[],true); updateStatus(`Uploading ${files.length} file(s)...`);
+      const fd = new FormData();
+      for (const f of files) {
+        const ext = (f.name.split('.').pop() || '').toLowerCase();
+        if (!['pdf','json','txt','csv','doc','docx','ppt','pptx','xlsx'].includes(ext)) { await addMessage(`❌ Skipped **${f.name}**: Unsupported file type.`,'error',[],true); continue; }
+        fd.append('document', f);
+      }
+      if (fd.getAll('document').length===0) { updateStatus('Upload failed: No valid files selected.', true); return; }
+      uploadButton.disabled = true;
+      try {
+        const r = await fetch(`${SERVER_URL}/upload`, { method:'POST', body: fd });
+        const j = await r.json().catch(()=>({error:r.statusText}));
+        if (!r.ok) { await addMessage(`❌ Failed to process documents. Server Error: ${j.error ?? r.statusText}.`,'error',[],true); updateStatus('Upload failed: Server error.', true); return; }
+        for (const f of fd.getAll('document')) addDocumentThumbnail(f.name);
+        await addMessage('✅ Documents processed and RAG refreshed.','bot',[],true); updateStatus('Upload successful.');
+      } catch { await addMessage('❌ Network error while uploading.','error',[],true); updateStatus('Upload failed: Connection error.', true); }
+      finally { uploadButton.disabled = false; }
+    }
+
+    // ===== Modal open/close (centered) =====
+    function openManualModal() {
+      modal.classList.remove('hidden');
+      modal.classList.add('show');
+      if (document.body.classList.contains('dark-mode')) modalContent.classList.add('dark-mode'); else modalContent.classList.remove('dark-mode');
+      analysisSubject.focus();
+    }
+    function closeManualModal() {
+      modal.classList.add('hidden');
+      modal.classList.remove('show');
+    }
+
+    async function handleManualAnalysis() {
+      const subject = analysisSubject.value.trim();
+      const body = analysisBody.value.trim();
+      if (!subject || !body) { analysisError.textContent = 'Subject and Body are required.'; analysisError.classList.remove('hidden'); return; }
+      analysisError.classList.add('hidden');
+
+      const safe = subject.toLowerCase().replace(/[^a-z0-9\s-_]/g,'').slice(0,50).trim().replace(/\s+/g,'_');
+      const fileName = `${safe || 'manual_text'}_${Date.now()}.txt`;
+
+      const card = document.createElement('div'); card.classList.add('document-card','mt-4'); if (document.body.classList.contains('dark-mode')) card.classList.add('dark-mode');
+      const iconDiv = document.createElement('div'); iconDiv.classList.add('document-card-img'); iconDiv.innerHTML = '🗒️';
+      const title = document.createElement('div'); title.classList.add('document-card-title','text-sm'); title.textContent = `Manual Text: ${fileName}`;
+      const actions = document.createElement('div'); actions.classList.add('doc-actions-container');
+
+      const analyze = document.createElement('button'); analyze.classList.add('doc-action-btn','btn-analyze'); analyze.dataset.action='upload-manual-rag'; analyze.dataset.filename=fileName; analyze.dataset.fileContent = encodeURIComponent(body); analyze.textContent = 'Analyze/RAG 🧠'; actions.appendChild(analyze);
+      const del = document.createElement('button'); del.classList.add('doc-action-btn','btn-delete'); del.dataset.action='delete-card'; del.dataset.filename=fileName; del.textContent='Delete ❌'; actions.appendChild(del);
+
+      card.appendChild(iconDiv); card.appendChild(title); card.appendChild(actions);
+      chatBox.prepend(card);
+
+      closeManualModal();
+      updateStatus('Manual text card created. Click Analyze/RAG to index.');
+    }
+
+    // ===== Event wiring =====
+    function setupEventListeners() {
+      sendButton.addEventListener('click', () => { closeAcDropdown(); sendMessage(); });
+      userInput.addEventListener('keydown', handleInputKeydown);
+      userInput.addEventListener('input', handleInputForAC);
+      userInput.addEventListener('focus', () => {
+        const text = userInput.value.trim();
+        if (text.length >= 2) handleInputForAC(null);
+      });
+
+      // Voice search
+      voiceButton.addEventListener('click', toggleVoice);
+
+      manualAnalysisButton.addEventListener('click', openManualModal);
+      modalCloseButton.addEventListener('click', closeManualModal);
+      modalAnalyzeButton.addEventListener('click', handleManualAnalysis);
+
+      uploadButton.addEventListener('click', ()=> fileInput.click());
+      fileInput.addEventListener('change', e=> handleFileUpload(e.target.files));
+
+      darkModeToggle.addEventListener('click', toggleDarkMode);
+      fontSizeSelect.addEventListener('change', handleFontSizeChange);
+      clearHistoryButton.addEventListener('click', async ()=>{
+        if (!confirm("Clear your local conversation history (sidebar)?")) return;
+        conversationHistory = []; localStorage.removeItem('conversationHistory'); renderHistory(); updateStatus('Local conversation history cleared.');
+      });
+
+      newChatButton.addEventListener('click', async ()=>{
+        if (!confirm('Start a new chat? (Chat view will be cleared)')) return;
+        await clearChat(false); updateStatus('New chat started.');
+      });
+
+      // Export toolbar
+      exportPdfButton.addEventListener('click', ()=> exportChat('pdf'));
+      exportWordButton.addEventListener('click', ()=> exportChat('word'));
+      exportXlsxButton.addEventListener('click', ()=> exportChat('xlsx'));
+      exportPptButton.addEventListener('click', ()=> exportChat('ppt'));
+      exportTxtButton.addEventListener('click', ()=> exportChat('txt'));
+      exportCsvButton.addEventListener('click', ()=> exportChat('csv'));
+
+      // Message-area delegation
+      chatBox.addEventListener('click', e=>{
+        const tBtn = e.target.closest('.translate-btn');
+        const rBtn = e.target.closest('.translate-reset-btn');
+        const act  = e.target.closest('[data-action]');
+
+        if (tBtn) {
+          const target = tBtn.dataset.lang;                      // e.g., "es"
+          const label = LANG_LABELS[target] || target.toUpperCase();
+          const msg = tBtn.closest('.bot-message');
+          const textEl = msg.querySelector('.message-text');
+          const resetBtn = msg.querySelector('.translate-reset-btn');
+          const badge = msg.querySelector('[data-translated-badge]');
+          const original = msg.dataset.originalText || textEl?.textContent || '';
+          if (!original.trim()) { updateStatus('Nothing to translate.', true); return; }
+
+          const allBtns = msg.querySelectorAll('.translate-btn');
+          allBtns.forEach(b => b.disabled = true);
+          updateStatus(`Translating to ${label}…`);
+
+          translateMessageOnServer(original, target)
+            .then(j => {
+              const translated = (j.translated || '').trim();
+              if (!translated) { updateStatus('Translation returned empty text.', true); return; }
+              textEl.innerHTML = renderMarkdown(translated);
+              if (resetBtn) resetBtn.style.display = 'inline-flex';
+              if (badge) { badge.textContent = `Translated: ${label}`; badge.style.display = 'inline-flex'; }
+              updateStatus(`Translated to ${label}.`);
+            })
+            .catch(err => {
+              updateStatus(`Translation failed: ${err.message || err}`, true);
+            })
+            .finally(() => {
+              allBtns.forEach(b => b.disabled = false);
+            });
+
+        } else if (rBtn) {
+          const msg = rBtn.closest('.bot-message'); const textEl = msg.querySelector('.message-text'); const badge = msg.querySelector('[data-translated-badge]');
+          textEl.innerHTML = renderMarkdown(msg.dataset.originalText || ''); rBtn.style.display='none'; if (badge) badge.style.display='none'; updateStatus('Translation reset to original.');
+        } else if (act) {
+          const action = act.dataset.action;
+          if (action === 'delete-message') {
+            if (confirm('Delete this message?')) act.closest('.message').remove();
+          } else if (action === 'export-inline') {
+            exportSingleMessage(act.closest('.message'), act.dataset.format);
+          } else if (action === 'analyze-inline') {
+            analyzeSingleMessageForRAG(act.closest('.message'));
+          } else if (action === 'upload-export') {
+            const card = act.closest('.document-card'); fetch(act.dataset.blobUrl).then(r=>r.blob()).then(b=> uploadExportedFileForRAG(b, act.dataset.filename, card));
+          } else if (action === 'delete-card') {
+            const card = act.closest('.document-card'); if (confirm('Remove this card from view? (File remains on disk until Clear Exports)')) { card.remove(); updateStatus('Card removed.'); }
+          } else if (action === 'delete-rag-doc') {
+            deleteDocument(act.dataset.filename, act.closest('.document-card'));
+          } else if (action === 'upload-manual-rag') {
+            const card = act.closest('.document-card'); const fileName = act.dataset.filename; const content = decodeURIComponent(act.dataset.fileContent);
+            uploadManualRAG(content, fileName, card);
+          }
+        }
+      });
+    }
+
+    async function deleteDocument(fileName, card) {
+      if (!confirm(`Delete RAG document ${fileName}? This refreshes the index.`)) return false;
+      updateStatus(`Deleting ${fileName} and refreshing RAG index...`);
+      try {
+        const r = await fetch(`${SERVER_URL}/delete-document`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ filename:fileName }) });
+        if (!r.ok) { const j = await r.json().catch(()=>({error:r.statusText})); await addMessage(`❌ Deletion failed for ${fileName}. Error: ${j.error ?? 'Server error'}.`,'error',[],true); updateStatus('Document deletion failed.', true); return false; }
+        await addMessage(`✅ Deleted RAG Document: **${fileName}**. Index refreshed.`,'bot',[],true);
+        if (card) card.remove(); updateStatus('Document deleted and RAG index refreshed.'); return true;
+      } catch {
+        await addMessage(`❌ Network error while deleting document.`,'error',[],true);
+        updateStatus('Document deletion failed: Connection error.', true); return false;
+      }
+    }
+
+
+
+
+
+    async function clearHistory(){ if (!confirm("Clear your local conversation history (sidebar)?")) return; conversationHistory=[]; localStorage.removeItem('conversationHistory'); renderHistory(); updateStatus('Local conversation history cleared.'); }
+    async function clearChat(initial=false){ chatBox.innerHTML=''; userInput.value=''; lastUserQuery=''; document.querySelectorAll('.document-card').forEach(c=>c.remove()); await addMessage("👋 Welcome to **Deltek Solution Manager**!\n\nAsk any question and I'll search across **Web**, **Documents**, and **ServiceNow** automatically.\n\n• Upload documents using the 📎 button\n• Use **SN Date Window** to filter ServiceNow by time\n• Export results in PDF, Word, Excel, and more",'bot'); if (!initial) updateStatus('Chat cleared (RAG data preserved).'); }
+    async function startNewChat(){ if (!confirm('Start a new chat? (Chat view will be cleared)')) return; await clearChat(false); updateStatus('New chat started.'); }
+
+    async function setupOnLoad() {
+      if (localStorage.getItem('darkMode') === 'enabled') {
+        document.body.classList.add('dark-mode');
+        document.querySelectorAll('#chat-box,#sidebar,#sidebar-header,#history-content,.input-area,#user-input,#status-bar,.deltek-header,.controls').forEach(el => el.classList.add('dark-mode'));
+      }
+      // Fetch SN base URL for record links
+      try {
+        const r = await fetch(`${SERVER_URL}/config/client`);
+        if (r.ok) { const j = await r.json(); SN_BASE_URL = j.SN_BASE_URL || ''; }
+      } catch(e) { console.warn('Could not fetch client config:', e); }
+
+      // Fetch SN groups for filter dropdown
+      try {
+        const r = await fetch(`${SERVER_URL}/servicenow/groups`);
+        if (r.ok) {
+          const j = await r.json();
+          _snGroups = (j.groups || []);
+          renderGroupOptions('');
+        }
+      } catch(e) { console.warn('Could not fetch SN groups:', e); }
+
+      // Configure marked for safe rendering
+      if (typeof marked !== 'undefined') {
+        marked.setOptions({ breaks: true, gfm: true });
+      }
+
+      populateLanguageDropdown();
+      setupEventListeners();
+      initVoiceSearch();
+      renderHistory();
+      clearChat(true);
+      updateStatus('Ready');
+    }
+    window.addEventListener('DOMContentLoaded', setupOnLoad);
+  </script>
+</body>
+</html>
